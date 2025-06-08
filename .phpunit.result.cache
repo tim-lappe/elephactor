@@ -1,0 +1,1 @@
+{"version":1,"defects":{"TimLappe\\ElephactorTests\\Application\\CommandTests\\RenameClassTest::testRenameClass":7},"times":{"TimLappe\\ElephactorTests\\Application\\CommandTests\\RenameClassTest::testRenameClass":0.015,"TimLappe\\ElephactorTests\\Application\\CommandTests\\RenameClassTest::testRenameClassWithInvalidOldName":0.001}}

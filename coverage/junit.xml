@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuites>
+  <testsuite name="/Users/tlappe/Projects/elephactor/elephactor/phpunit.xml" tests="1" assertions="0" errors="1" failures="0" skipped="0" time="0.005003">
+    <testsuite name="Application" tests="1" assertions="0" errors="1" failures="0" skipped="0" time="0.005003">
+      <testsuite name="TimLappe\Elephactor\Tests\Application\Commands\RenameClassTest" file="/Users/tlappe/Projects/elephactor/elephactor/tests/Application/CommandTests/RenameClassTest.php" tests="1" assertions="0" errors="1" failures="0" skipped="0" time="0.005003">
+        <testcase name="testRenameClass" file="/Users/tlappe/Projects/elephactor/elephactor/tests/Application/CommandTests/RenameClassTest.php" line="13" class="TimLappe\Elephactor\Tests\Application\Commands\RenameClassTest" classname="TimLappe.Elephactor.Tests.Application.Commands.RenameClassTest" assertions="0" time="0.005003">
+          <error type="RuntimeException">TimLappe\Elephactor\Tests\Application\Commands\RenameClassTest::testRenameClass
+RuntimeException: Could not parse composer.json in /Users/tlappe/Projects/elephactor/elephactor/tests/TestProjects/Minimal. Please check if the file exists and is valid.
+
+/Users/tlappe/Projects/elephactor/elephactor/src/Composer/ComposerJson.php:16
+/Users/tlappe/Projects/elephactor/elephactor/src/Application.php:20
+/Users/tlappe/Projects/elephactor/elephactor/tests/Application/CommandTests/RenameClassTest.php:15</error>
+        </testcase>
+      </testsuite>
+    </testsuite>
+  </testsuite>
+</testsuites>
