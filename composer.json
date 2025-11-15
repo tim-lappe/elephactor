@@ -1,0 +1,40 @@
+{
+    "name": "tim-lappe/elephactor",
+    "description": "PHP Refactoring Tool",
+    "autoload": {
+        "psr-4": {
+            "TimLappe\\Elephactor\\": "src/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "TimLappe\\ElephactorTests\\": "tests/"
+        }
+    },
+    "authors": [
+        {
+            "name": "Tim Lappe",
+            "email": "tim.lappe@check24.de"
+        }
+    ],
+    "require": {
+        "nikic/php-parser": "^5.5",
+        "symfony/console": "^7.3",
+        "symfony/finder": "^7.3"
+    },
+    "require-dev": {
+        "phpunit/phpunit": "^12.1",
+        "phpstan/phpstan": "^2.1",
+        "phpstan/phpstan-strict-rules": "^2.0",
+        "friendsofphp/php-cs-fixer": "^3.20"
+    },
+    "scripts": {
+        "test": "phpunit",
+        "test:coverage": "phpunit --coverage-text",
+        "phpstan": "phpstan analyse",
+        "fix": "php-cs-fixer fix --config=.php-cs-fixer.php --allow-risky=yes"
+    },
+    "bin": [
+        "bin/elephactor"
+    ]
+}
