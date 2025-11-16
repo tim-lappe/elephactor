@@ -4,20 +4,25 @@ declare(strict_types=1);
 
 namespace TimLappe\ElephactorTests\Application\Commands\RenameClass;
 
-use TimLappe\Elephactor\Domain\Php\Model\FileHandle;
+use TimLappe\Elephactor\Domain\Php\Index\Criteria\ClassNameCriteria;
 use TimLappe\Elephactor\Domain\Php\Model\FileModel\Ast\Value\Identifier;
 use TimLappe\Elephactor\Domain\Php\Refactoring\Commands\ClassRename;
 use TimLappe\ElephactorTests\Application\ElephactorTestCase;
+use TimLappe\ElephactorTests\Application\VirtualFile;
 
 final class FullyQualifiedSelectionRenameTest extends ElephactorTestCase
 {
-    private FileHandle $primaryDuplicate;
-    private FileHandle $secondaryDuplicate;
-    private FileHandle $usage;
+    private VirtualFile $primaryDuplicate;
+    private VirtualFile $secondaryDuplicate;
+    private VirtualFile $usage;
 
-    protected function setUp(): void
+    public function setUp(): void
     {
-        $this->primaryDuplicate = $this->setupFile(['Utility', 'Primary'], 'DuplicateClass', <<<'PHP'
+        parent::setUp();
+
+        $utilityDir = $this->sourceDirectory->createOrGetDirecotry('Utility');
+        $primaryDir = $utilityDir->createOrGetDirecotry('Primary');
+        $this->primaryDuplicate = $primaryDir->createFile('DuplicateClass.php', <<<'PHP'
         <?php
 
         namespace VirtualTestNamespace\Utility\Primary;
@@ -31,7 +36,8 @@ final class FullyQualifiedSelectionRenameTest extends ElephactorTestCase
         }
         PHP);
 
-        $this->secondaryDuplicate = $this->setupFile(['Utility', 'Secondary'], 'DuplicateClass', <<<'PHP'
+        $secondaryDir = $utilityDir->createOrGetDirecotry('Secondary');
+        $this->secondaryDuplicate = $secondaryDir->createFile('DuplicateClass.php', <<<'PHP'
         <?php
 
         namespace VirtualTestNamespace\Utility\Secondary;
@@ -45,7 +51,8 @@ final class FullyQualifiedSelectionRenameTest extends ElephactorTestCase
         }
         PHP);
 
-        $this->usage = $this->setupFile(['Consumer'], 'DuplicateClassConsumer', <<<'PHP'
+        $consumerDir = $this->sourceDirectory->createOrGetDirecotry('Consumer');
+        $this->usage = $consumerDir->createFile('DuplicateClassConsumer.php', <<<'PHP'
         <?php
 
         namespace VirtualTestNamespace\Consumer;
@@ -60,19 +67,20 @@ final class FullyQualifiedSelectionRenameTest extends ElephactorTestCase
             }
         }
         PHP);
+
+        $this->workspace->reloadIndices();
     }
 
     public function testRenamesOnlySpecifiedFullyQualifiedClass(): void
     {
-        $application = $this->buildApplication();
-        $class = $application->getClassFinder()->find('VirtualTestNamespace\Utility\Primary\DuplicateClass');
-        if ($class === null) {
-            throw new \RuntimeException('Class not found');
+        $class = $this->workspace->classIndex()->find(new ClassNameCriteria('VirtualTestNamespace\Utility\Primary\DuplicateClass'));
+        if ($class->first() === null) {
+            $this->fail('Class VirtualTestNamespace\Utility\Primary\DuplicateClass not found in workspace');
         }
 
-        $application->getRefactoringExecutor()->handle(new ClassRename($class, new Identifier('PrimaryUtility')));
+        $this->application->refactoringExecutor()->handle(new ClassRename($class->first(), new Identifier('PrimaryUtility')));
 
-        $this->codeMatches($this->primaryDuplicate->readContent(), <<<'PHP'
+        $this->codeMatches($this->primaryDuplicate->content(), <<<'PHP'
         <?php
 
         namespace VirtualTestNamespace\Utility\Primary;
@@ -86,7 +94,7 @@ final class FullyQualifiedSelectionRenameTest extends ElephactorTestCase
         }
         PHP);
 
-        $this->codeMatches($this->secondaryDuplicate->readContent(), <<<'PHP'
+        $this->codeMatches($this->secondaryDuplicate->content(), <<<'PHP'
         <?php
 
         namespace VirtualTestNamespace\Utility\Secondary;
@@ -100,7 +108,7 @@ final class FullyQualifiedSelectionRenameTest extends ElephactorTestCase
         }
         PHP);
 
-        $this->codeMatches($this->usage->readContent(), <<<'PHP'
+        $this->codeMatches($this->usage->content(), <<<'PHP'
         <?php
 
         namespace VirtualTestNamespace\Consumer;
@@ -117,4 +125,3 @@ final class FullyQualifiedSelectionRenameTest extends ElephactorTestCase
         PHP);
     }
 }
-

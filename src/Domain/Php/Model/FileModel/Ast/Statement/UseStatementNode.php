@@ -19,7 +19,7 @@ final class UseStatementNode extends AbstractNode implements StatementNode
     public function __construct(
         private readonly array $clauses,
         private readonly UseKind $kind = UseKind::CLASS_IMPORT,
-        private readonly ?QualifiedName $groupPrefix = null,
+        private ?QualifiedName $groupPrefix = null,
     ) {
         if ($clauses === []) {
             throw new \InvalidArgumentException('Use statement must contain at least one clause');
@@ -75,6 +75,11 @@ final class UseStatementNode extends AbstractNode implements StatementNode
     public function groupPrefix(): ?QualifiedName
     {
         return $this->groupPrefix;
+    }
+
+    public function changeGroupPrefix(?QualifiedName $groupPrefix): void
+    {
+        $this->groupPrefix = $groupPrefix;
     }
 
     public function isGroupImport(): bool

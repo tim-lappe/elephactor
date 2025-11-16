@@ -9,7 +9,7 @@ use TimLappe\Elephactor\Domain\Php\Model\FileModel\PhpClass;
 use TimLappe\Elephactor\Domain\Php\Refactoring\Commands\ClassRename;
 use TimLappe\Elephactor\Domain\Php\Refactoring\RefactoringCommand;
 use TimLappe\Elephactor\Domain\Php\Refactoring\RefactoringExecutor;
-use TimLappe\Elephactor\Domain\Php\Repository\PhpFilePersister;
+use TimLappe\Elephactor\Domain\Php\Persister\PhpFilePersister;
 use TimLappe\Elephactor\Domain\Php\Resolution\ClassReference\ClassReferenceFinder;
 
 final class ClassRenameExecutor implements RefactoringExecutor

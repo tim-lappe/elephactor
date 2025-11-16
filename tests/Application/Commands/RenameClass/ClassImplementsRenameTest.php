@@ -4,20 +4,24 @@ declare(strict_types=1);
 
 namespace TimLappe\ElephactorTests\Application\Commands\RenameClass;
 
-use TimLappe\Elephactor\Domain\Php\Model\FileHandle;
+use TimLappe\Elephactor\Domain\Php\Index\Criteria\ClassNameCriteria;
 use TimLappe\Elephactor\Domain\Php\Model\FileModel\Ast\Value\Identifier;
 use TimLappe\Elephactor\Domain\Php\Refactoring\Commands\ClassRename;
 use TimLappe\ElephactorTests\Application\ElephactorTestCase;
+use TimLappe\ElephactorTests\Application\VirtualFile;
 
 final class ClassImplementsRenameTest extends ElephactorTestCase
 {
-    private FileHandle $targetInterface;
-    private FileHandle $simpleImplementation;
-    private FileHandle $complexImplementation;
+    private VirtualFile $targetInterface;
+    private VirtualFile $simpleImplementation;
+    private VirtualFile $complexImplementation;
 
-    protected function setUp(): void
+    public function setUp(): void
     {
-        $this->targetInterface = $this->setupFile(['Contracts'], 'OldContract', <<<'PHP'
+        parent::setUp();
+
+        $contractsDir = $this->sourceDirectory->createOrGetDirecotry('Contracts');
+        $this->targetInterface = $contractsDir->createFile('OldContract.php', <<<'PHP'
         <?php
 
         namespace VirtualTestNamespace\Contracts;
@@ -28,7 +32,7 @@ final class ClassImplementsRenameTest extends ElephactorTestCase
         }
         PHP);
 
-        $this->setupFile(['Contracts'], 'AdditionalInterface', <<<'PHP'
+        $contractsDir->createFile('AdditionalInterface.php', <<<'PHP'
         <?php
 
         namespace VirtualTestNamespace\Contracts;
@@ -38,7 +42,8 @@ final class ClassImplementsRenameTest extends ElephactorTestCase
         }
         PHP);
 
-        $this->simpleImplementation = $this->setupFile(['Usage'], 'SimpleImplementation', <<<'PHP'
+        $usageDir = $this->sourceDirectory->createOrGetDirecotry('Usage');
+        $this->simpleImplementation = $usageDir->createFile('SimpleImplementation.php', <<<'PHP'
         <?php
 
         namespace VirtualTestNamespace\Usage;
@@ -53,7 +58,8 @@ final class ClassImplementsRenameTest extends ElephactorTestCase
         }
         PHP);
 
-        $this->complexImplementation = $this->setupFile(['Usage', 'Complex'], 'ComplexImplementation', <<<'PHP'
+        $complexDir = $usageDir->createOrGetDirecotry('Complex');
+        $this->complexImplementation = $complexDir->createFile('ComplexImplementation.php', <<<'PHP'
         <?php
 
         namespace VirtualTestNamespace\Usage\Complex;
@@ -67,13 +73,15 @@ final class ClassImplementsRenameTest extends ElephactorTestCase
             }
         }
         PHP);
+
+        $this->workspace->reloadIndices();
     }
 
     public function testRenamesImplementsClauseWithImport(): void
     {
         $this->renameContract();
 
-        $this->codeMatches($this->simpleImplementation->readContent(), <<<'PHP'
+        $this->codeMatches($this->simpleImplementation->content(), <<<'PHP'
         <?php
 
         namespace VirtualTestNamespace\Usage;
@@ -93,7 +101,7 @@ final class ClassImplementsRenameTest extends ElephactorTestCase
     {
         $this->renameContract();
 
-        $this->codeMatches($this->complexImplementation->readContent(), <<<'PHP'
+        $this->codeMatches($this->complexImplementation->content(), <<<'PHP'
         <?php
 
         namespace VirtualTestNamespace\Usage\Complex;
@@ -111,14 +119,12 @@ final class ClassImplementsRenameTest extends ElephactorTestCase
 
     private function renameContract(): void
     {
-        $application = $this->buildApplication();
-        $class = $application->getClassFinder()->find('OldContract');
-        if ($class === null) {
-            throw new \RuntimeException('Class not found');
+        $class = $this->workspace->classIndex()->find(new ClassNameCriteria('OldContract'));
+        if ($class->first() === null) {
+            $this->fail('Class OldContract not found in workspace');
         }
 
-        $executor = $application->getRefactoringExecutor();
-        $executor->handle(new ClassRename($class, new Identifier('NewContract')));
+        $executor = $this->application->refactoringExecutor();
+        $executor->handle(new ClassRename($class->first(), new Identifier('NewContract')));
     }
 }
-

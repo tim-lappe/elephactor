@@ -16,7 +16,7 @@ final class NamespaceDefinitionNode extends AbstractNode implements StatementNod
      * @param list<StatementNode> $statements
      */
     public function __construct(
-        private readonly ?QualifiedName $name,
+        private ?QualifiedName $name,
         private readonly array $statements,
         private readonly bool $bracketed = false
     ) {
@@ -26,6 +26,11 @@ final class NamespaceDefinitionNode extends AbstractNode implements StatementNod
     public function name(): ?QualifiedName
     {
         return $this->name;
+    }
+
+    public function changeName(?QualifiedName $name): void
+    {
+        $this->name = $name;
     }
 
     public function isBracketed(): bool

@@ -86,8 +86,22 @@ final class QualifiedName
         $count = count($this->parts);
         $parts = $this->parts;
         $parts[$count - 1] = $identifier;
+        $parts = array_values($parts);
 
-        $this->parts = array_values($parts);
+        $this->parts = $parts;
+    }
+
+    /**
+     * @param array<Identifier> $parts
+     */
+    public function replaceParts(array $parts): void
+    {
+        if ($parts === []) {
+            throw new \InvalidArgumentException('Qualified name requires at least one identifier');
+        }
+
+        $parts = array_values($parts);
+        $this->parts = $parts;
     }
 
     public function __toString(): string

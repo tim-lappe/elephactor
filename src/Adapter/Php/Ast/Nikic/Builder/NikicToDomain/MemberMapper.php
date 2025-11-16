@@ -72,11 +72,12 @@ final class MemberMapper
 
     private function mapMethodDeclaration(Stmt\ClassMethod $method): Ast\Declaration\MethodDeclarationNode
     {
-        $bodyStatements = $method->stmts !== null ? $this->context->statementMapper()->mapStatements($method->stmts) : [];
+        $hasBody = $method->stmts !== null;
+        $bodyStatements = $hasBody ? $this->context->statementMapper()->mapStatements($method->stmts ?? []) : [];
 
         return new Ast\Declaration\MethodDeclarationNode(
             $this->valueMapper->getTypeMapper()->mapIdentifier($method->name),
-            $this->valueMapper->mapMethodModifiers($method->flags),
+            $this->valueMapper->mapMethodModifiers($method->flags, !$hasBody),
             $this->valueMapper->mapAttributeGroups($method->attrGroups),
             $this->context->expressionMapper()->mapParameters($method->params),
             $bodyStatements,

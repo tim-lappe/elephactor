@@ -4,20 +4,24 @@ declare(strict_types=1);
 
 namespace TimLappe\ElephactorTests\Application\Commands\RenameClass;
 
-use TimLappe\Elephactor\Domain\Php\Model\FileHandle;
+use TimLappe\Elephactor\Domain\Php\Index\Criteria\ClassNameCriteria;
 use TimLappe\Elephactor\Domain\Php\Model\FileModel\Ast\Value\Identifier;
 use TimLappe\Elephactor\Domain\Php\Refactoring\Commands\ClassRename;
 use TimLappe\ElephactorTests\Application\ElephactorTestCase;
+use TimLappe\ElephactorTests\Application\VirtualFile;
 
 final class UseStatementRenameTest extends ElephactorTestCase
 {
-    private FileHandle $targetClass;
-    private FileHandle $simpleImportClass;
-    private FileHandle $groupedImportClass;
+    private VirtualFile $targetClass;
+    private VirtualFile $simpleImportClass;
+    private VirtualFile $groupedImportClass;
 
-    protected function setUp(): void
+    public function setUp(): void
     {
-        $this->targetClass = $this->setupFile(['Foo'], 'OldClass', <<<'PHP'
+        parent::setUp();
+
+        $fooDir = $this->sourceDirectory->createOrGetDirecotry('Foo');
+        $this->targetClass = $fooDir->createFile('OldClass.php', <<<'PHP'
         <?php
 
         namespace VirtualTestNamespace\Foo;
@@ -27,7 +31,7 @@ final class UseStatementRenameTest extends ElephactorTestCase
         }
         PHP);
 
-        $this->setupFile(['Foo'], 'HelperClass', <<<'PHP'
+        $fooDir->createFile('HelperClass.php', <<<'PHP'
         <?php
 
         namespace VirtualTestNamespace\Foo;
@@ -37,7 +41,8 @@ final class UseStatementRenameTest extends ElephactorTestCase
         }
         PHP);
 
-        $this->simpleImportClass = $this->setupFile(['Bar'], 'SimpleImportClass', <<<'PHP'
+        $barDir = $this->sourceDirectory->createOrGetDirecotry('Bar');
+        $this->simpleImportClass = $barDir->createFile('SimpleImportClass.php', <<<'PHP'
         <?php
 
         namespace VirtualTestNamespace\Bar;
@@ -53,7 +58,8 @@ final class UseStatementRenameTest extends ElephactorTestCase
         }
         PHP);
 
-        $this->groupedImportClass = $this->setupFile(['Bar', 'Grouped'], 'GroupedImportClass', <<<'PHP'
+        $groupedDir = $barDir->createOrGetDirecotry('Grouped');
+        $this->groupedImportClass = $groupedDir->createFile('GroupedImportClass.php', <<<'PHP'
         <?php
 
         namespace VirtualTestNamespace\Bar\Grouped;
@@ -68,13 +74,15 @@ final class UseStatementRenameTest extends ElephactorTestCase
             }
         }
         PHP);
+
+        $this->workspace->reloadIndices();
     }
 
     public function testRenamesSimpleUseStatement(): void
     {
         $this->renameTargetClass();
 
-        $this->codeMatches($this->simpleImportClass->readContent(), <<<'PHP'
+        $this->codeMatches($this->simpleImportClass->content(), <<<'PHP'
         <?php
 
         namespace VirtualTestNamespace\Bar;
@@ -95,7 +103,7 @@ final class UseStatementRenameTest extends ElephactorTestCase
     {
         $this->renameTargetClass();
 
-        $this->codeMatches($this->groupedImportClass->readContent(), <<<'PHP'
+        $this->codeMatches($this->groupedImportClass->content(), <<<'PHP'
         <?php
 
         namespace VirtualTestNamespace\Bar\Grouped;
@@ -114,14 +122,13 @@ final class UseStatementRenameTest extends ElephactorTestCase
 
     private function renameTargetClass(): void
     {
-        $application = $this->buildApplication();
-        $class = $application->getClassFinder()->find('OldClass');
-        if ($class === null) {
-            throw new \RuntimeException('Class not found');
+        $class = $this->workspace->classIndex()->find(new ClassNameCriteria('OldClass'));
+        if ($class->first() === null) {
+            $this->fail('Class OldClass not found in workspace');
         }
 
-        $executor = $application->getRefactoringExecutor();
-        $executor->handle(new ClassRename($class, new Identifier('NewClass')));
+        $executor = $this->application->refactoringExecutor();
+        $executor->handle(new ClassRename($class->first(), new Identifier('NewClass')));
     }
 }
 

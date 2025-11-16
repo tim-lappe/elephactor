@@ -130,7 +130,7 @@ final class ValueMapper
             $flags |= Stmt\Class_::MODIFIER_STATIC;
         }
 
-        if ($modifiers->isAbstract()) {
+        if ($modifiers->isExplicitAbstract()) {
             $flags |= Stmt\Class_::MODIFIER_ABSTRACT;
         }
 

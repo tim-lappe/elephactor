@@ -4,20 +4,24 @@ declare(strict_types=1);
 
 namespace TimLappe\ElephactorTests\Application\Commands\RenameClass;
 
-use TimLappe\Elephactor\Domain\Php\Model\FileHandle;
+use TimLappe\Elephactor\Domain\Php\Index\Criteria\ClassNameCriteria;
 use TimLappe\Elephactor\Domain\Php\Model\FileModel\Ast\Value\Identifier;
 use TimLappe\Elephactor\Domain\Php\Refactoring\Commands\ClassRename;
 use TimLappe\ElephactorTests\Application\ElephactorTestCase;
+use TimLappe\ElephactorTests\Application\VirtualFile;
 
 final class InstanceofExpressionRenameTest extends ElephactorTestCase
 {
-    private FileHandle $typeClass;
-    private FileHandle $simpleChecker;
-    private FileHandle $qualifiedChecker;
+    private VirtualFile $typeClass;
+    private VirtualFile $simpleChecker;
+    private VirtualFile $qualifiedChecker;
 
-    protected function setUp(): void
+    public function setUp(): void
     {
-        $this->typeClass = $this->setupFile(['Types'], 'OldType', <<<'PHP'
+        parent::setUp();
+
+        $typesDir = $this->sourceDirectory->createOrGetDirecotry('Types');
+        $this->typeClass = $typesDir->createFile('OldType.php', <<<'PHP'
         <?php
 
         namespace VirtualTestNamespace\Types;
@@ -27,7 +31,8 @@ final class InstanceofExpressionRenameTest extends ElephactorTestCase
         }
         PHP);
 
-        $this->simpleChecker = $this->setupFile(['Usage'], 'InstanceofChecker', <<<'PHP'
+        $usageDir = $this->sourceDirectory->createOrGetDirecotry('Usage');
+        $this->simpleChecker = $usageDir->createFile('InstanceofChecker.php', <<<'PHP'
         <?php
 
         namespace VirtualTestNamespace\Usage;
@@ -43,7 +48,8 @@ final class InstanceofExpressionRenameTest extends ElephactorTestCase
         }
         PHP);
 
-        $this->qualifiedChecker = $this->setupFile(['Usage', 'Advanced'], 'QualifiedInstanceofChecker', <<<'PHP'
+        $advancedDir = $usageDir->createOrGetDirecotry('Advanced');
+        $this->qualifiedChecker = $advancedDir->createFile('QualifiedInstanceofChecker.php', <<<'PHP'
         <?php
 
         namespace VirtualTestNamespace\Usage\Advanced;
@@ -56,13 +62,15 @@ final class InstanceofExpressionRenameTest extends ElephactorTestCase
             }
         }
         PHP);
+
+        $this->workspace->reloadIndices();
     }
 
     public function testRenamesInstanceofWithImport(): void
     {
         $this->renameType();
 
-        $this->codeMatches($this->simpleChecker->readContent(), <<<'PHP'
+        $this->codeMatches($this->simpleChecker->content(), <<<'PHP'
         <?php
 
         namespace VirtualTestNamespace\Usage;
@@ -83,7 +91,7 @@ final class InstanceofExpressionRenameTest extends ElephactorTestCase
     {
         $this->renameType();
 
-        $this->codeMatches($this->qualifiedChecker->readContent(), <<<'PHP'
+        $this->codeMatches($this->qualifiedChecker->content(), <<<'PHP'
         <?php
 
         namespace VirtualTestNamespace\Usage\Advanced;
@@ -100,14 +108,12 @@ final class InstanceofExpressionRenameTest extends ElephactorTestCase
 
     private function renameType(): void
     {
-        $application = $this->buildApplication();
-        $class = $application->getClassFinder()->find('OldType');
-        if ($class === null) {
-            throw new \RuntimeException('Class not found');
+        $class = $this->workspace->classIndex()->find(new ClassNameCriteria('OldType'));
+        if ($class->first() === null) {
+            $this->fail('Class OldType not found in workspace');
         }
 
-        $executor = $application->getRefactoringExecutor();
-        $executor->handle(new ClassRename($class, new Identifier('NewType')));
+        $executor = $this->application->refactoringExecutor();
+        $executor->handle(new ClassRename($class->first(), new Identifier('NewType')));
     }
 }
-

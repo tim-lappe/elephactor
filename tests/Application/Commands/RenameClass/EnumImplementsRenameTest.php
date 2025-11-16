@@ -4,20 +4,24 @@ declare(strict_types=1);
 
 namespace TimLappe\ElephactorTests\Application\Commands\RenameClass;
 
-use TimLappe\Elephactor\Domain\Php\Model\FileHandle;
+use TimLappe\Elephactor\Domain\Php\Index\Criteria\ClassNameCriteria;
 use TimLappe\Elephactor\Domain\Php\Model\FileModel\Ast\Value\Identifier;
 use TimLappe\Elephactor\Domain\Php\Refactoring\Commands\ClassRename;
 use TimLappe\ElephactorTests\Application\ElephactorTestCase;
+use TimLappe\ElephactorTests\Application\VirtualFile;
 
 final class EnumImplementsRenameTest extends ElephactorTestCase
 {
-    private FileHandle $contract;
-    private FileHandle $simpleEnum;
-    private FileHandle $advancedEnum;
+    private VirtualFile $contract;
+    private VirtualFile $simpleEnum;
+    private VirtualFile $advancedEnum;
 
-    protected function setUp(): void
+    public function setUp(): void
     {
-        $this->contract = $this->setupFile(['Contracts'], 'BehaviorContract', <<<'PHP'
+        parent::setUp();
+
+        $contractsDir = $this->sourceDirectory->createOrGetDirecotry('Contracts');
+        $this->contract = $contractsDir->createFile('BehaviorContract.php', <<<'PHP'
         <?php
 
         namespace VirtualTestNamespace\Contracts;
@@ -28,7 +32,7 @@ final class EnumImplementsRenameTest extends ElephactorTestCase
         }
         PHP);
 
-        $this->setupFile(['Contracts'], 'ExtraBehavior', <<<'PHP'
+        $contractsDir->createFile('ExtraBehavior.php', <<<'PHP'
         <?php
 
         namespace VirtualTestNamespace\Contracts;
@@ -38,7 +42,8 @@ final class EnumImplementsRenameTest extends ElephactorTestCase
         }
         PHP);
 
-        $this->simpleEnum = $this->setupFile(['Enums'], 'SimpleEnum', <<<'PHP'
+        $enumsDir = $this->sourceDirectory->createOrGetDirecotry('Enums');
+        $this->simpleEnum = $enumsDir->createFile('SimpleEnum.php', <<<'PHP'
         <?php
 
         namespace VirtualTestNamespace\Enums;
@@ -58,7 +63,8 @@ final class EnumImplementsRenameTest extends ElephactorTestCase
         }
         PHP);
 
-        $this->advancedEnum = $this->setupFile(['Enums', 'Advanced'], 'AdvancedEnum', <<<'PHP'
+        $advancedDir = $enumsDir->createOrGetDirecotry('Advanced');
+        $this->advancedEnum = $advancedDir->createFile('AdvancedEnum.php', <<<'PHP'
         <?php
 
         namespace VirtualTestNamespace\Enums\Advanced;
@@ -75,13 +81,15 @@ final class EnumImplementsRenameTest extends ElephactorTestCase
             }
         }
         PHP);
+
+        $this->workspace->reloadIndices();
     }
 
     public function testRenamesEnumImplementsClause(): void
     {
         $this->renameContract();
 
-        $this->codeMatches($this->simpleEnum->readContent(), <<<'PHP'
+        $this->codeMatches($this->simpleEnum->content(), <<<'PHP'
         <?php
 
         namespace VirtualTestNamespace\Enums;
@@ -106,7 +114,7 @@ final class EnumImplementsRenameTest extends ElephactorTestCase
     {
         $this->renameContract();
 
-        $this->codeMatches($this->advancedEnum->readContent(), <<<'PHP'
+        $this->codeMatches($this->advancedEnum->content(), <<<'PHP'
         <?php
 
         namespace VirtualTestNamespace\Enums\Advanced;
@@ -127,14 +135,12 @@ final class EnumImplementsRenameTest extends ElephactorTestCase
 
     private function renameContract(): void
     {
-        $application = $this->buildApplication();
-        $class = $application->getClassFinder()->find('BehaviorContract');
-        if ($class === null) {
-            throw new \RuntimeException('Class not found');
+        $class = $this->workspace->classIndex()->find(new ClassNameCriteria('BehaviorContract'));
+        if ($class->first() === null) {
+            $this->fail('Class BehaviorContract not found in workspace');
         }
 
-        $executor = $application->getRefactoringExecutor();
-        $executor->handle(new ClassRename($class, new Identifier('UpdatedBehaviorContract')));
+        $executor = $this->application->refactoringExecutor();
+        $executor->handle(new ClassRename($class->first(), new Identifier('UpdatedBehaviorContract')));
     }
 }
-

@@ -24,6 +24,16 @@ final class PhpClassCollection
         $this->classes = array_merge($this->classes, $classCollection->toArray());
     }
 
+    public function filter(callable $callback): PhpClassCollection
+    {
+        return new PhpClassCollection(array_filter($this->classes, $callback));
+    }
+
+    public function first(): ?PhpClass
+    {
+        return $this->classes[0] ?? null;
+    }
+
     /**
      * @return array<PhpClass>
      */

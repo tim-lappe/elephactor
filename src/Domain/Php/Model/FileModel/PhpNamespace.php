@@ -6,15 +6,15 @@ namespace TimLappe\Elephactor\Domain\Php\Model\FileModel;
 
 use TimLappe\Elephactor\Domain\Php\Model\FileModel\Ast\Value\Identifier;
 
-final class PhpNamespace
+final readonly class PhpNamespace
 {
     /**
      * @var list<Identifier>
      */
-    private array $parts = [];
+    private readonly array $parts;
 
     public function __construct(
-        private string $name,
+        string $name,
     ) {
         if ($name === '') {
             throw new \InvalidArgumentException('Namespace name cannot be empty');
@@ -25,15 +25,20 @@ final class PhpNamespace
         }
 
         $exploded = explode('\\', trim($name, '\\'));
-        $this->parts = array_map(
-            static fn (string $part): Identifier => new Identifier($part),
-            $exploded,
-        );
+
+        try {
+            $this->parts = array_map(
+                static fn (string $part): Identifier => new Identifier($part),
+                $exploded,
+            );
+        } catch (\InvalidArgumentException $e) {
+            throw new \InvalidArgumentException('Namespace name must be a valid PHP identifier: ' . $name, 0, $e);
+        }
     }
 
     public function name(): string
     {
-        return $this->name;
+        return implode('\\', array_map(fn (Identifier $identifier): string => $identifier->value(), $this->parts));
     }
 
     /**
@@ -42,5 +47,60 @@ final class PhpNamespace
     public function parts(): array
     {
         return $this->parts;
+    }
+
+    public function equals(PhpNamespace $namespace): bool
+    {
+        return $this->name() === $namespace->name();
+    }
+
+    public function contains(PhpNamespace $namespace): bool
+    {
+        if (count($this->parts) > count($namespace->parts())) {
+            return false;
+        }
+
+        foreach ($this->parts as $key => $part) {
+            if (!isset($namespace->parts()[$key]) || !$namespace->parts()[$key]->equals($part)) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    public function removeLastPart(): PhpNamespace
+    {
+        return new PhpNamespace(implode('\\', array_slice($this->parts(), 0, -1)));
+    }
+
+    public function removeFirstPart(): PhpNamespace
+    {
+        return new PhpNamespace(implode('\\', array_slice($this->parts(), 1)));
+    }
+
+    public function extend(string $segment): PhpNamespace
+    {
+        $segment = trim($segment, '\\');
+        if ($segment === '') {
+            return $this;
+        }
+
+        return new PhpNamespace($this->name() . '\\' . $segment);
+    }
+
+    public function prepend(string $segment): PhpNamespace
+    {
+        $segment = trim($segment, '\\');
+        if ($segment === '') {
+            return $this;
+        }
+
+        return new PhpNamespace($segment . '\\' . $this->name());
+    }
+
+    public function preprendNamespace(PhpNamespace $namespace): PhpNamespace
+    {
+        return new PhpNamespace(implode('\\', array_merge($namespace->parts(), $this->parts)));
     }
 }

@@ -5,85 +5,47 @@ declare(strict_types=1);
 namespace TimLappe\ElephactorTests\Application;
 
 use PHPUnit\Framework\TestCase;
-use Symfony\Component\Console\Output\ConsoleOutput;
-use TimLappe\Elephactor\Adapter\Php\Ast\AstBuilder;
 use TimLappe\Elephactor\Adapter\Php\Ast\Nikic\Builder\NikicToDomain\NikicToDomainNodeMapper;
 use TimLappe\Elephactor\Adapter\Php\Ast\Nikic\Loader\NikicAstBuilder;
 use TimLappe\Elephactor\Application;
-use TimLappe\Elephactor\Composer\ComposerJson;
-use TimLappe\Elephactor\Debug\NamespaceSegmentPrinter;
-use TimLappe\Elephactor\Domain\Php\Model\FileModel\PhpClassCollection;
-use TimLappe\Elephactor\Domain\Php\Model\FileModel\PhpFile;
-use TimLappe\Elephactor\Domain\Psr4\Model\Psr4ClassFile;
-use TimLappe\Elephactor\Domain\Psr4\Model\Psr4NamespaceSegment;
-use TimLappe\Elephactor\Model\Environment;
-use TimLappe\Elephactor\Model\PhpVersion;
+use TimLappe\Elephactor\Domain\Php\Model\FileModel\PhpNamespace;
+use TimLappe\Elephactor\Domain\Workspace\Model\Environment;
+use TimLappe\Elephactor\Domain\Php\Model\PhpVersion;
+use TimLappe\Elephactor\Domain\Psr4\Adapter\Index\Psr4FileIndex;
+use TimLappe\Elephactor\Domain\Psr4\Adapter\Psr4ClassIndex;
+use TimLappe\Elephactor\Domain\Psr4\Model\Psr4AutoloadMap;
+use TimLappe\Elephactor\Domain\Workspace\Model\Workspace;
 
 abstract class ElephactorTestCase extends TestCase
 {
-    protected Environment $environment;
-    protected PhpClassCollection $phpClassCollection;
-    protected AstBuilder $astBuilder;
+    protected Workspace $workspace;
+    protected VirtualDirectory $sourceDirectory;
+    protected Application $application;
 
-    private array $setupFiles = [];
-
-    public function buildApplication(): Application
+    public function setUp(): void
     {
-        $this->environment = new Environment(
-            getcwd(),
-            PhpVersion::fromString('8.1'),
-            new ComposerJson([
-                'autoload' => [
-                    'psr-4' => [
-                        'VirtualTestNamespace\\' => 'virtual/',
-                    ],
-                ],
-            ]),
+        $workDir = new VirtualDirectory('workdir');
+
+        $this->workspace = new Workspace(
+            $workDir,
+            new Environment(PhpVersion::fromString('8.3')),
         );
 
-        $this->astBuilder = new NikicAstBuilder(new NikicToDomainNodeMapper(), $this->environment->getTargetPhpVersion());
-        $this->phpClassCollection = new PhpClassCollection([]);
+        $this->sourceDirectory = $workDir->createOrGetDirecotry('src');
 
-        $rootSegment = Psr4NamespaceSegment::createFromQualifiedName('VirtualTestNamespace');
-        $this->buildTree($this->setupFiles, $rootSegment);
+        $psr4AutoloadMap = new Psr4AutoloadMap();
+        $psr4AutoloadMap->add(new PhpNamespace('VirtualTestNamespace'), $this->sourceDirectory);
 
-        return new Application($this->environment, new VirtualPsr4RootsLoader($this->phpClassCollection));
-    }
+        $psr4FileIndex = new Psr4FileIndex($psr4AutoloadMap);
+        $psr4FileIndex->reload();
 
-    private function buildTree(array $currentTree, Psr4NamespaceSegment $currentSegment): array
-    {
-        foreach ($currentTree as $namespacePart => $namespacePartTree) {
-            if (is_array($namespacePartTree)) {
-                $childSegment = $currentSegment->createChildSegmentByName($namespacePart);
-                $currentTree[$namespacePart] = $this->buildTree($namespacePartTree, $childSegment);
-                continue;
-            }
+        $nikicAstBuilder = new NikicAstBuilder(new NikicToDomainNodeMapper(), $this->workspace->environment()->phpVersion());
 
-            if ($namespacePartTree instanceof VirtualFileHandle) {
-                $fileNode = $this->astBuilder->build($namespacePartTree->readContent());
-                $file = new PhpFile($namespacePartTree, $fileNode);
-                $phpClass = new Psr4ClassFile($file, $currentSegment);
+        $this->workspace->registerFileIndex($psr4FileIndex);
+        $this->workspace->registerClassIndex(new Psr4ClassIndex($psr4FileIndex, $nikicAstBuilder));
+        $this->workspace->reloadIndices();
 
-                $this->phpClassCollection->add($phpClass);
-                $currentSegment->classes()->add($phpClass);
-            }
-        }
-
-        return $currentTree;
-    }
-
-    protected function setupFile(array $namespaceParts, string $className, string $content): VirtualFileHandle
-    {
-        $fileHandle = new VirtualFileHandle($className, $content);
-
-        $structure = [$className => $fileHandle];
-        foreach (array_reverse($namespaceParts) as $namespacePart) {
-            $structure = [$namespacePart => $structure];
-        }
-
-        $this->setupFiles = array_merge_recursive($this->setupFiles, $structure);
-
-        return $fileHandle;
+        $this->application = new Application($this->workspace);
     }
 
     protected function codeMatches(string $code, string $expectedCode): void
@@ -100,3 +62,4 @@ abstract class ElephactorTestCase extends TestCase
         return $code;
     }
 }
+

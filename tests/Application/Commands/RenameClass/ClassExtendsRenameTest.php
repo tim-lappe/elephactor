@@ -4,20 +4,24 @@ declare(strict_types=1);
 
 namespace TimLappe\ElephactorTests\Application\Commands\RenameClass;
 
-use TimLappe\Elephactor\Domain\Php\Model\FileHandle;
+use TimLappe\Elephactor\Domain\Php\Index\Criteria\ClassNameCriteria;
 use TimLappe\Elephactor\Domain\Php\Model\FileModel\Ast\Value\Identifier;
 use TimLappe\Elephactor\Domain\Php\Refactoring\Commands\ClassRename;
 use TimLappe\ElephactorTests\Application\ElephactorTestCase;
+use TimLappe\ElephactorTests\Application\VirtualFile;
 
 final class ClassExtendsRenameTest extends ElephactorTestCase
 {
-    private FileHandle $parentClass;
-    private FileHandle $simpleChild;
-    private FileHandle $qualifiedChild;
+    private VirtualFile $parentClass;
+    private VirtualFile $simpleChild;
+    private VirtualFile $qualifiedChild;
 
-    protected function setUp(): void
+    public function setUp(): void
     {
-        $this->parentClass = $this->setupFile(['Inheritance'], 'ParentBase', <<<'PHP'
+        parent::setUp();
+
+        $inheritanceDir = $this->sourceDirectory->createOrGetDirecotry('Inheritance');
+        $this->parentClass = $inheritanceDir->createFile('ParentBase.php', <<<'PHP'
         <?php
 
         namespace VirtualTestNamespace\Inheritance;
@@ -27,7 +31,8 @@ final class ClassExtendsRenameTest extends ElephactorTestCase
         }
         PHP);
 
-        $this->simpleChild = $this->setupFile(['Usage'], 'SimpleChild', <<<'PHP'
+        $usageDir = $this->sourceDirectory->createOrGetDirecotry('Usage');
+        $this->simpleChild = $usageDir->createFile('SimpleChild.php', <<<'PHP'
         <?php
 
         namespace VirtualTestNamespace\Usage;
@@ -39,7 +44,8 @@ final class ClassExtendsRenameTest extends ElephactorTestCase
         }
         PHP);
 
-        $this->qualifiedChild = $this->setupFile(['Usage', 'Deep'], 'QualifiedChild', <<<'PHP'
+        $deepDir = $usageDir->createOrGetDirecotry('Deep');
+        $this->qualifiedChild = $deepDir->createFile('QualifiedChild.php', <<<'PHP'
         <?php
 
         namespace VirtualTestNamespace\Usage\Deep;
@@ -48,13 +54,15 @@ final class ClassExtendsRenameTest extends ElephactorTestCase
         {
         }
         PHP);
+
+        $this->workspace->reloadIndices();
     }
 
     public function testRenamesExtendsClauseWithImport(): void
     {
         $this->renameParent();
 
-        $this->codeMatches($this->simpleChild->readContent(), <<<'PHP'
+        $this->codeMatches($this->simpleChild->content(), <<<'PHP'
         <?php
 
         namespace VirtualTestNamespace\Usage;
@@ -71,7 +79,7 @@ final class ClassExtendsRenameTest extends ElephactorTestCase
     {
         $this->renameParent();
 
-        $this->codeMatches($this->qualifiedChild->readContent(), <<<'PHP'
+        $this->codeMatches($this->qualifiedChild->content(), <<<'PHP'
         <?php
 
         namespace VirtualTestNamespace\Usage\Deep;
@@ -84,14 +92,12 @@ final class ClassExtendsRenameTest extends ElephactorTestCase
 
     private function renameParent(): void
     {
-        $application = $this->buildApplication();
-        $class = $application->getClassFinder()->find('ParentBase');
-        if ($class === null) {
-            throw new \RuntimeException('Class not found');
+        $class = $this->workspace->classIndex()->find(new ClassNameCriteria('ParentBase'));
+        if ($class->first() === null) {
+            $this->fail('Class ParentBase not found in workspace');
         }
 
-        $executor = $application->getRefactoringExecutor();
-        $executor->handle(new ClassRename($class, new Identifier('RenamedParentBase')));
+        $executor = $this->application->refactoringExecutor();
+        $executor->handle(new ClassRename($class->first(), new Identifier('RenamedParentBase')));
     }
 }
-

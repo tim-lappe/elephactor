@@ -32,6 +32,28 @@ final class NativeFileHandle implements FileHandle
         $this->absolutePath = dirname($this->absolutePath) . '/' . $newName;
     }
 
+    public function moveTo(string $newDirectory): void
+    {
+        if (!file_exists($newDirectory)) {
+            throw new \RuntimeException(sprintf('Directory %s does not exist', $newDirectory));
+        }
+
+        if (!is_dir($newDirectory)) {
+            throw new \RuntimeException(sprintf('Directory %s is not a directory', $newDirectory));
+        }
+
+        $realPathDirectory = realpath($newDirectory);
+        if ($realPathDirectory === false) {
+            throw new \RuntimeException(sprintf('Directory %s does not exist', $newDirectory));
+        }
+
+        if (!rename($this->absolutePath, $realPathDirectory . '/' . $this->name())) {
+            throw new \RuntimeException(sprintf('Could not move file %s to %s', $this->absolutePath, $realPathDirectory . '/' . $this->name()));
+        }
+
+        $this->absolutePath = $realPathDirectory . '/' . $this->name();
+    }
+
     public function writeContent(string $content): void
     {
         if (file_put_contents($this->absolutePath, $content) === false) {

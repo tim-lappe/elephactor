@@ -40,13 +40,16 @@ final class ValueMapper
         );
     }
 
-    public function mapMethodModifiers(int $flags): Ast\Value\MethodModifiers
+    public function mapMethodModifiers(int $flags, bool $implicitAbstract = false): Ast\Value\MethodModifiers
     {
+        $isAbstract = ($flags & Stmt\Class_::MODIFIER_ABSTRACT) === Stmt\Class_::MODIFIER_ABSTRACT;
+
         return new Ast\Value\MethodModifiers(
             $this->mapVisibility($flags),
             ($flags & Stmt\Class_::MODIFIER_STATIC) === Stmt\Class_::MODIFIER_STATIC,
-            ($flags & Stmt\Class_::MODIFIER_ABSTRACT) === Stmt\Class_::MODIFIER_ABSTRACT,
+            $isAbstract,
             ($flags & Stmt\Class_::MODIFIER_FINAL) === Stmt\Class_::MODIFIER_FINAL,
+            $implicitAbstract,
         );
     }
 

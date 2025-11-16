@@ -10,7 +10,6 @@ use TimLappe\Elephactor\Domain\Php\Model\FileModel\Ast\FileNode;
 use TimLappe\Elephactor\Domain\Php\Model\FileModel\Ast\Statement\UseKind;
 use TimLappe\Elephactor\Domain\Php\Model\FileModel\Ast\Statement\UseStatementNode;
 use TimLappe\Elephactor\Domain\Php\Model\FileModel\PhpClass;
-use TimLappe\Elephactor\Domain\Php\Model\FileModel\PhpClassCollection;
 use TimLappe\Elephactor\Domain\Php\Model\FileModel\PhpNamespace;
 use TimLappe\Elephactor\Domain\Php\Model\FileModel\Ast\Value\FullyQualifiedName;
 use TimLappe\Elephactor\Domain\Php\Model\FileModel\Ast\Value\Identifier as AstIdentifier;
@@ -29,11 +28,12 @@ use TimLappe\Elephactor\Domain\Php\Model\FileModel\Ast\Node;
 use TimLappe\Elephactor\Domain\Php\Model\FileModel\Ast\Type\NamedTypeNode;
 use TimLappe\Elephactor\Domain\Php\Model\FileModel\Ast\UseTrait\TraitAliasAdaptationNode;
 use TimLappe\Elephactor\Domain\Php\Model\FileModel\Ast\UseTrait\TraitPrecedenceAdaptationNode;
+use TimLappe\Elephactor\Domain\Php\Index\PhpClassIndex;
 
 final class ClassReferenceFinder
 {
     public function __construct(
-        private readonly PhpClassCollection $classCollection,
+        private readonly PhpClassIndex $phpClassIndex,
     ) {
     }
 
@@ -46,7 +46,8 @@ final class ClassReferenceFinder
         $visitedFiles = [];
         $targetFullName = $targetClass->fullyQualifiedIdentifier();
 
-        foreach ($this->classCollection->toArray() as $phpClass) {
+        $phpClasses = $this->phpClassIndex->find();
+        foreach ($phpClasses->toArray() as $phpClass) {
             $file = $phpClass->file();
             $fileId = spl_object_id($file);
 

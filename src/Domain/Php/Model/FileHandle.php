@@ -10,7 +10,11 @@ interface FileHandle
 
     public function rename(string $newName): void;
 
+    public function moveTo(string $newDirectory): void;
+
     public function readContent(): string;
 
     public function writeContent(string $content): void;
+
+    public function absolutePath(): string;
 }
