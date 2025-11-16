@@ -6,7 +6,7 @@ namespace TimLappe\Elephactor\Adapter\Php\Ast\Nikic\Builder\NikicToDomain;
 
 use PhpParser\Node;
 use PhpParser\Node\Name;
-use TimLappe\Elephactor\Domain\Php\Model\FileModel\Ast as Ast;
+use TimLappe\Elephactor\Domain\Php\AST\Model as Ast;
 
 final class TypeMapper
 {
@@ -14,13 +14,20 @@ final class TypeMapper
     {
         $parts = $name->getParts();
 
+        if ($name instanceof Name\FullyQualified) {
+            return new Ast\Value\FullyQualifiedName(
+                array_map(
+                    fn (string $part): Ast\Value\Identifier => new Ast\Value\Identifier($part),
+                    $parts,
+                ),
+            );
+        }
+
         return new Ast\Value\QualifiedName(
             array_map(
                 fn (string $part): Ast\Value\Identifier => new Ast\Value\Identifier($part),
                 $parts,
             ),
-            $name instanceof Name\FullyQualified,
-            $name instanceof Name\Relative,
         );
     }
 

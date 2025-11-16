@@ -9,14 +9,17 @@ use Symfony\Component\Console\Input\InputArgument;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
 use TimLappe\Elephactor\Application;
-use TimLappe\Elephactor\Domain\Php\Model\FileModel\Ast\Value\Identifier;
+use TimLappe\Elephactor\Domain\Php\AST\Model\Value\Identifier;
+use TimLappe\Elephactor\Domain\Php\Index\ClassIndex\Criteria\ClassNameCriteria;
 use TimLappe\Elephactor\Domain\Php\Refactoring\Commands\ClassRename;
+
+use function sprintf;
 
 class RenameClass extends Command
 {
     protected function configure(): void
     {
-        $this->setName('rename-class')
+        $this->setName('class:rename')
             ->setDescription('Rename a class')
             ->addArgument('old-name', InputArgument::REQUIRED, 'The old name of the class')
             ->addArgument('new-name', InputArgument::REQUIRED, 'The new name of the class');
@@ -41,12 +44,12 @@ class RenameClass extends Command
             throw new \RuntimeException('Application is not an instance of Application');
         }
 
-        $class = $application->getClassFinder()->find($oldName);
+        $class = $application->workspace()->classLikeIndex()->find(new ClassNameCriteria(new Identifier($oldName)))->first();
         if ($class === null) {
             throw new \RuntimeException(sprintf('Class %s not found', $oldName));
         }
 
-        $refactoringExecutor = $application->getRefactoringExecutor();
+        $refactoringExecutor = $application->refactoringExecutor();
         $refactoringExecutor->handle(new ClassRename($class, new Identifier($newName)));
 
         return Command::SUCCESS;

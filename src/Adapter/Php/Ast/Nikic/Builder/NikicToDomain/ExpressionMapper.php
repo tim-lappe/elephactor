@@ -9,7 +9,7 @@ use PhpParser\Node\Expr;
 use PhpParser\Node\Name;
 use PhpParser\Node\Scalar\String_ as ScalarString;
 use PhpParser\Node\Stmt;
-use TimLappe\Elephactor\Domain\Php\Model\FileModel\Ast as Ast;
+use TimLappe\Elephactor\Domain\Php\AST\Model as Ast;
 
 final class ExpressionMapper
 {

@@ -4,20 +4,23 @@ declare(strict_types=1);
 
 namespace TimLappe\ElephactorTests\Application\Commands\RenameClass;
 
-use TimLappe\Elephactor\Domain\Php\Model\FileHandle;
-use TimLappe\Elephactor\Domain\Php\Model\FileModel\Ast\Value\Identifier;
+use TimLappe\Elephactor\Domain\Php\Index\ClassIndex\Criteria\ClassNameCriteria;
+use TimLappe\Elephactor\Domain\Php\AST\Model\Value\Identifier;
 use TimLappe\Elephactor\Domain\Php\Refactoring\Commands\ClassRename;
 use TimLappe\ElephactorTests\Application\ElephactorTestCase;
+use TimLappe\ElephactorTests\Application\VirtualFile;
 
 final class InterfaceExtendsRenameTest extends ElephactorTestCase
 {
-    private FileHandle $baseInterface;
-    private FileHandle $childInterface;
-    private FileHandle $multiInterface;
+    private VirtualFile $childInterface;
+    private VirtualFile $multiInterface;
 
-    protected function setUp(): void
+    public function setUp(): void
     {
-        $this->baseInterface = $this->setupFile(['Contracts'], 'BaseInterface', <<<'PHP'
+        parent::setUp();
+
+        $contractsDir = $this->sourceDirectory->createOrGetDirecotry('Contracts');
+        $contractsDir->createFile('BaseInterface.php', <<<'PHP'
         <?php
 
         namespace VirtualTestNamespace\Contracts;
@@ -28,7 +31,7 @@ final class InterfaceExtendsRenameTest extends ElephactorTestCase
         }
         PHP);
 
-        $this->setupFile(['Contracts'], 'StandaloneInterface', <<<'PHP'
+        $contractsDir->createFile('StandaloneInterface.php', <<<'PHP'
         <?php
 
         namespace VirtualTestNamespace\Contracts;
@@ -38,7 +41,8 @@ final class InterfaceExtendsRenameTest extends ElephactorTestCase
         }
         PHP);
 
-        $this->childInterface = $this->setupFile(['Usage'], 'ChildInterface', <<<'PHP'
+        $usageDir = $this->sourceDirectory->createOrGetDirecotry('Usage');
+        $this->childInterface = $usageDir->createFile('ChildInterface.php', <<<'PHP'
         <?php
 
         namespace VirtualTestNamespace\Usage;
@@ -50,7 +54,8 @@ final class InterfaceExtendsRenameTest extends ElephactorTestCase
         }
         PHP);
 
-        $this->multiInterface = $this->setupFile(['Usage', 'Complex'], 'MultiInterface', <<<'PHP'
+        $complexDir = $usageDir->createOrGetDirecotry('Complex');
+        $this->multiInterface = $complexDir->createFile('MultiInterface.php', <<<'PHP'
         <?php
 
         namespace VirtualTestNamespace\Usage\Complex;
@@ -61,13 +66,15 @@ final class InterfaceExtendsRenameTest extends ElephactorTestCase
         {
         }
         PHP);
+
+        $this->workspace->reloadIndices();
     }
 
     public function testRenamesInterfaceExtendsClause(): void
     {
         $this->renameBaseInterface();
 
-        $this->codeMatches($this->childInterface->readContent(), <<<'PHP'
+        $this->codeMatches($this->childInterface->content(), <<<'PHP'
         <?php
 
         namespace VirtualTestNamespace\Usage;
@@ -84,7 +91,7 @@ final class InterfaceExtendsRenameTest extends ElephactorTestCase
     {
         $this->renameBaseInterface();
 
-        $this->codeMatches($this->multiInterface->readContent(), <<<'PHP'
+        $this->codeMatches($this->multiInterface->content(), <<<'PHP'
         <?php
 
         namespace VirtualTestNamespace\Usage\Complex;
@@ -99,14 +106,13 @@ final class InterfaceExtendsRenameTest extends ElephactorTestCase
 
     private function renameBaseInterface(): void
     {
-        $application = $this->buildApplication();
-        $class = $application->getClassFinder()->find('BaseInterface');
+        $class = $this->workspace->classLikeIndex()->find(new ClassNameCriteria(new Identifier('BaseInterface')))
+            ->first();
         if ($class === null) {
-            throw new \RuntimeException('Class not found');
+            self::fail('Class BaseInterface not found in workspace');
         }
 
-        $executor = $application->getRefactoringExecutor();
+        $executor = $this->application->refactoringExecutor();
         $executor->handle(new ClassRename($class, new Identifier('RenamedBaseInterface')));
     }
 }
-

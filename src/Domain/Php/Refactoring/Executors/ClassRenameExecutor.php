@@ -4,19 +4,23 @@ declare(strict_types=1);
 
 namespace TimLappe\Elephactor\Domain\Php\Refactoring\Executors;
 
-use TimLappe\Elephactor\Domain\Php\Model\FileModel\Ast\Value\Identifier;
-use TimLappe\Elephactor\Domain\Php\Model\FileModel\PhpClass;
+use TimLappe\Elephactor\Domain\Php\Analysis\Transformation\Transformer\RenameQualifiedNameIdentifierTransformer;
+use TimLappe\Elephactor\Domain\Php\Analysis\Transformation\Transformer\RenameImportTransformer;
+use TimLappe\Elephactor\Domain\Php\AST\Model\Value\Identifier;
 use TimLappe\Elephactor\Domain\Php\Refactoring\Commands\ClassRename;
 use TimLappe\Elephactor\Domain\Php\Refactoring\RefactoringCommand;
 use TimLappe\Elephactor\Domain\Php\Refactoring\RefactoringExecutor;
-use TimLappe\Elephactor\Domain\Php\Repository\PhpFilePersister;
-use TimLappe\Elephactor\Domain\Php\Resolution\ClassReference\ClassReferenceFinder;
+use TimLappe\Elephactor\Domain\Php\Persister\PhpFilePersister;
+use TimLappe\Elephactor\Domain\Workspace\Model\Workspace;
+use TimLappe\Elephactor\Domain\Php\Model\ClassLike\PhpClassLike;
+use TimLappe\Elephactor\Domain\Php\Analysis\Transformation\SemanticNodeTransformationExecutor;
+use TimLappe\Elephactor\Domain\Php\Analysis\Transformation\Refactorer\RefactoringStack;
 
 final class ClassRenameExecutor implements RefactoringExecutor
 {
     public function __construct(
         private readonly PhpFilePersister $phpFilePersister,
-        private readonly ClassReferenceFinder $classReferenceFinder,
+        private readonly Workspace $workspace,
     ) {
     }
 
@@ -31,29 +35,34 @@ final class ClassRenameExecutor implements RefactoringExecutor
             throw new \InvalidArgumentException('Command is not a ClassRename');
         }
 
-        $phpClass = $command->phpClass();
+        $phpFiles = $this->workspace->phpFileIndex()->find()->toArray();
+        $oldFullyQualifiedName = $command->phpClass()->classLikeDeclaration()->name()->fullyQualifiedName();
+        $newFullyQualifiedName = $oldFullyQualifiedName->changeLastPart($command->newName());
 
-        $this->renameUsageStatements($phpClass, $command->newName());
-        $this->renameItself($phpClass, $command->newName());
-    }
-
-    private function renameItself(PhpClass $phpClass, Identifier $newName): void
-    {
-        $phpClass->file()->handle()->rename($newName->value() . '.php');
-        $phpClass->changeIdentifier($newName);
-
-        $this->phpFilePersister->persist($phpClass->file());
-    }
-
-    private function renameUsageStatements(PhpClass $phpClass, Identifier $newName): void
-    {
-        $references = $this->classReferenceFinder->findClassReferences($phpClass);
-        foreach ($references as $reference) {
-            foreach ($reference->referenceNodes() as $referenceNode) {
-                $referenceNode->changeLastPart($newName);
-
-                $this->phpFilePersister->persist($reference->file());
-            }
+        $refactoringStack = new RefactoringStack();
+        foreach ($phpFiles as $phpFile) {
+            $semanticFileNode = $phpFile->fileNode();
+            $semanticNodeTraverser = new SemanticNodeTransformationExecutor([
+                new RenameQualifiedNameIdentifierTransformer($oldFullyQualifiedName, $command->newName()),
+                new RenameImportTransformer($oldFullyQualifiedName, $newFullyQualifiedName),
+            ]);
+            
+            $semanticNodeTraverser->collect($semanticFileNode, $refactoringStack);
         }
+
+        $refactoringStack->apply();
+
+        foreach ($phpFiles as $phpFile) {
+            $this->phpFilePersister->persist($phpFile);
+        }
+
+        $this->renameItself($command->phpClass(), $command->newName());
+    }
+
+    private function renameItself(PhpClassLike $classLike, Identifier $newName): void
+    {
+        $classLike->file()->handle()->rename($newName->value() . '.php');
+
+        $this->phpFilePersister->persist($classLike->file());
     }
 }

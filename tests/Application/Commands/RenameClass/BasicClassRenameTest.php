@@ -4,39 +4,37 @@ declare(strict_types=1);
 
 namespace TimLappe\ElephactorTests\Application\Commands\RenameClass;
 
-use TimLappe\Elephactor\Domain\Php\Model\FileHandle;
-use TimLappe\Elephactor\Domain\Php\Model\FileModel\Ast\Value\Identifier;
+use TimLappe\Elephactor\Domain\Php\Index\ClassIndex\Criteria\ClassNameCriteria;
+use TimLappe\Elephactor\Domain\Php\AST\Model\Value\Identifier;
 use TimLappe\Elephactor\Domain\Php\Refactoring\Commands\ClassRename;
 use TimLappe\ElephactorTests\Application\ElephactorTestCase;
+use TimLappe\ElephactorTests\Application\VirtualFile;
 
 class BasicClassRenameTest extends ElephactorTestCase
 {
-    private FileHandle $oldClass;
+    private VirtualFile $oldClass;
 
-    protected function setUp(): void
+    public function setUp(): void
     {
-        $this->oldClass = $this->setupFile([], 'OldClass', <<<'PHP'
+        parent::setUp();
+
+        $this->oldClass = $this->sourceDirectory->createFile('OldClass.php', <<<'PHP'
         <?php
 
         class OldClass
         {
         }
         PHP);
+
+        $this->workspace->reloadIndices();
     }
 
     public function testBasicClassRename(): void
     {
-        $application = $this->buildApplication();
-        $class = $application->getClassFinder()->find('OldClass');
-        if ($class === null) {
-            throw new \RuntimeException('Class not found');
-        }
+        $this->renameClass('OldClass', 'NewClass');
 
-        $executor = $application->getRefactoringExecutor();
-        $executor->handle(new ClassRename($class, new Identifier('NewClass')));
-
-        $this->assertEquals('NewClass.php', $this->oldClass->name());
-        $this->codeMatches($this->oldClass->readContent(), <<<'PHP'
+        self::assertEquals('NewClass.php', $this->oldClass->name());
+        $this->codeMatches($this->oldClass->content(), <<<'PHP'
         <?php
 
         class NewClass
@@ -45,10 +43,14 @@ class BasicClassRenameTest extends ElephactorTestCase
         PHP);
     }
 
-    public function setupFiles(): array
+    private function renameClass(string $oldName, string $newName): void
     {
-        return [
-            $this->oldClass
-        ];
+        $class = $this->workspace->classLikeIndex()->find(new ClassNameCriteria(new Identifier($oldName)))->first();
+        if ($class === null) {
+            self::fail(sprintf('Class %s not found in workspace', $oldName));
+        }
+
+        $executor = $this->application->refactoringExecutor();
+        $executor->handle(new ClassRename($class, new Identifier($newName)));
     }
 }

@@ -10,12 +10,13 @@ use PhpParser\Node\IntersectionType;
 use PhpParser\Node\Name;
 use PhpParser\Node\NullableType;
 use PhpParser\Node\UnionType;
-use TimLappe\Elephactor\Domain\Php\Model\FileModel\Ast as Ast;
-use TimLappe\Elephactor\Domain\Php\Model\FileModel\Ast\Type\NamedTypeNode;
-use TimLappe\Elephactor\Domain\Php\Model\FileModel\Ast\Type\NullableTypeNode;
-use TimLappe\Elephactor\Domain\Php\Model\FileModel\Ast\Type\SpecialTypeNode;
-use TimLappe\Elephactor\Domain\Php\Model\FileModel\Ast\Type\UnionTypeNode;
-use TimLappe\Elephactor\Domain\Php\Model\FileModel\Ast\Value\QualifiedName;
+use TimLappe\Elephactor\Domain\Php\AST\Model as Ast;
+use TimLappe\Elephactor\Domain\Php\AST\Model\Type\NamedTypeNode;
+use TimLappe\Elephactor\Domain\Php\AST\Model\Type\NullableTypeNode;
+use TimLappe\Elephactor\Domain\Php\AST\Model\Type\SpecialTypeNode;
+use TimLappe\Elephactor\Domain\Php\AST\Model\Type\UnionTypeNode;
+use TimLappe\Elephactor\Domain\Php\AST\Model\Value\FullyQualifiedName;
+use TimLappe\Elephactor\Domain\Php\AST\Model\Value\QualifiedName;
 
 final class TypeMapper
 {
@@ -67,7 +68,7 @@ final class TypeMapper
         }
 
         if ($type instanceof NamedTypeNode) {
-            return $this->buildQualifiedName($type->name());
+            return $this->buildQualifiedName($type->name()->qualifiedName());
         }
 
         if ($type instanceof SpecialTypeNode) {
@@ -98,12 +99,8 @@ final class TypeMapper
             $name->parts(),
         );
 
-        if ($name->isFullyQualified()) {
+        if ($name instanceof FullyQualifiedName) {
             return new Name\FullyQualified($parts);
-        }
-
-        if ($name->isRelative()) {
-            return new Name\Relative($parts);
         }
 
         return new Name($parts);

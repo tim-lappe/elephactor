@@ -13,7 +13,7 @@ use PhpParser\Node\Identifier;
 use PhpParser\Node\Name;
 use PhpParser\Node\VarLikeIdentifier;
 use PhpParser\Node\Stmt;
-use TimLappe\Elephactor\Domain\Php\Model\FileModel\Ast as Ast;
+use TimLappe\Elephactor\Domain\Php\AST\Model as Ast;
 
 final class ValueMapper
 {
@@ -82,7 +82,7 @@ final class ValueMapper
     private function buildAttribute(Ast\Attribute\AttributeNode $attribute): Attribute
     {
         return new Attribute(
-            $this->buildQualifiedName($attribute->name()),
+            $this->buildQualifiedName($attribute->name()->qualifiedName()),
             array_map(
                 fn (Ast\Attribute\AttributeArgumentNode $argument): Arg => $this->buildAttributeArgument($argument),
                 $attribute->arguments(),
@@ -99,7 +99,7 @@ final class ValueMapper
             false,
             false,
             [],
-            $argument->name() !== null ? $this->buildIdentifier($argument->name()) : null,
+            $argument->name() !== null ? $this->buildIdentifier($argument->name()->identifier()) : null,
         );
     }
 
@@ -130,7 +130,7 @@ final class ValueMapper
             $flags |= Stmt\Class_::MODIFIER_STATIC;
         }
 
-        if ($modifiers->isAbstract()) {
+        if ($modifiers->isExplicitAbstract()) {
             $flags |= Stmt\Class_::MODIFIER_ABSTRACT;
         }
 

@@ -8,13 +8,13 @@ use PhpParser\Node;
 use PhpParser\Node\Const_;
 use PhpParser\Node\Expr;
 use PhpParser\Node\Stmt;
-use TimLappe\Elephactor\Domain\Php\Model\FileModel\Ast as Ast;
-use TimLappe\Elephactor\Domain\Php\Model\FileModel\Ast\Statement\DeclareDirectiveNode;
-use TimLappe\Elephactor\Domain\Php\Model\FileModel\Ast\Statement\StaticVariableNode;
-use TimLappe\Elephactor\Domain\Php\Model\FileModel\Ast\Statement\UseClauseNode;
-use TimLappe\Elephactor\Domain\Php\Model\FileModel\Ast\Trivia\WhitespaceNode;
+use TimLappe\Elephactor\Domain\Php\AST\Model as Ast;
+use TimLappe\Elephactor\Domain\Php\AST\Model\Statement\DeclareDirectiveNode;
+use TimLappe\Elephactor\Domain\Php\AST\Model\Statement\StaticVariableNode;
+use TimLappe\Elephactor\Domain\Php\AST\Model\Statement\UseClauseNode;
+use TimLappe\Elephactor\Domain\Php\AST\Model\Trivia\WhitespaceNode;
 use TimLappe\Elephactor\Adapter\Php\Ast\Nikic\WhitespaceAttribute;
-use TimLappe\Elephactor\Domain\Php\Model\FileModel\Ast\Value\DocBlock;
+use TimLappe\Elephactor\Domain\Php\AST\Model\Value\DocBlock;
 
 final class NikicStatementMapper implements StatementMapper
 {
@@ -91,7 +91,7 @@ final class NikicStatementMapper implements StatementMapper
     private function buildNamespaceDefinition(Ast\Statement\NamespaceDefinitionNode $statement): Stmt\Namespace_
     {
         $namespace = new Stmt\Namespace_(
-            $statement->name() !== null ? $this->valueMapper->buildQualifiedName($statement->name()) : null,
+            $this->valueMapper->buildQualifiedName($statement->name()->qualifiedName()),
             $this->buildStatements($statement->statements()),
         );
 
@@ -116,7 +116,7 @@ final class NikicStatementMapper implements StatementMapper
         if ($statement->groupPrefix() !== null) {
             return [
                 new Stmt\GroupUse(
-                    $this->valueMapper->buildQualifiedName($statement->groupPrefix()),
+                    $this->valueMapper->buildQualifiedName($statement->groupPrefix()->qualifiedName()),
                     $items,
                     $this->valueMapper->buildUseType($statement->useKind()),
                 ),
@@ -137,8 +137,8 @@ final class NikicStatementMapper implements StatementMapper
     private function buildUseClause(UseClauseNode $clause, int $type): Node\UseItem
     {
         return new Node\UseItem(
-            $this->valueMapper->buildQualifiedName($clause->name()),
-            $clause->alias() !== null ? $this->valueMapper->buildIdentifier($clause->alias()) : null,
+            $this->valueMapper->buildQualifiedName($clause->name()->qualifiedName()),
+            $clause->alias() !== null ? $this->valueMapper->buildIdentifier($clause->alias()->identifier()) : null,
             $type,
         );
     }
@@ -147,7 +147,7 @@ final class NikicStatementMapper implements StatementMapper
     {
         $elements = array_map(
             fn (Ast\Declaration\ConstElementNode $element): Const_ => new Const_(
-                $this->valueMapper->buildIdentifier($element->name()),
+                $this->valueMapper->buildIdentifier($element->name()->identifier()),
                 $this->expressionMapper->buildExpression($element->value()),
             ),
             $const->elements(),
@@ -159,7 +159,7 @@ final class NikicStatementMapper implements StatementMapper
     private function buildFunctionDeclaration(Ast\Declaration\FunctionDeclarationNode $function): Stmt\Function_
     {
         $node = new Stmt\Function_(
-            $this->valueMapper->buildIdentifier($function->name()),
+            $this->valueMapper->buildIdentifier($function->name()->identifier()),
             [
                 'byRef' => $function->returnsByReference(),
                 'params' => $this->expressionMapper->buildParameters($function->parameters()),
@@ -177,12 +177,12 @@ final class NikicStatementMapper implements StatementMapper
     private function buildClassDeclaration(Ast\Declaration\ClassDeclarationNode $class): Stmt\Class_
     {
         $node = new Stmt\Class_(
-            $this->valueMapper->buildIdentifier($class->name()),
+            $this->valueMapper->buildIdentifier($class->name()->identifier()),
             [
                 'flags' => $this->valueMapper->buildClassFlags($class->modifiers()),
-                'extends' => $class->extends() !== null ? $this->valueMapper->buildQualifiedName($class->extends()) : null,
+                'extends' => $class->extends() !== null ? $this->valueMapper->buildQualifiedName($class->extends()->qualifiedName()) : null,
                 'implements' => array_map(
-                    fn (Ast\Value\QualifiedName $interface): Node\Name => $this->valueMapper->buildQualifiedName($interface),
+                    fn (Ast\Name\QualifiedNameNode $interface): Node\Name => $this->valueMapper->buildQualifiedName($interface->qualifiedName()),
                     $class->interfaces(),
                 ),
                 'stmts' => $this->context->memberMapper()->buildMembers($class->members()),
@@ -198,10 +198,10 @@ final class NikicStatementMapper implements StatementMapper
     private function buildInterfaceDeclaration(Ast\Declaration\InterfaceDeclarationNode $interface): Stmt\Interface_
     {
         $node = new Stmt\Interface_(
-            $this->valueMapper->buildIdentifier($interface->name()),
+            $this->valueMapper->buildIdentifier($interface->name()->identifier()),
             [
                 'extends' => array_map(
-                    fn (Ast\Value\QualifiedName $parent): Node\Name => $this->valueMapper->buildQualifiedName($parent),
+                    fn (Ast\Name\QualifiedNameNode $parent): Node\Name => $this->valueMapper->buildQualifiedName($parent->qualifiedName()),
                     $interface->extends(),
                 ),
                 'stmts' => $this->context->memberMapper()->buildMembers($interface->members()),
@@ -217,7 +217,7 @@ final class NikicStatementMapper implements StatementMapper
     private function buildTraitDeclaration(Ast\Declaration\TraitDeclarationNode $trait): Stmt\Trait_
     {
         $node = new Stmt\Trait_(
-            $this->valueMapper->buildIdentifier($trait->name()),
+            $this->valueMapper->buildIdentifier($trait->name()->identifier()),
             [
                 'stmts' => $this->context->memberMapper()->buildMembers($trait->members()),
                 'attrGroups' => $this->valueMapper->buildAttributeGroups($trait->attributes()),
@@ -232,11 +232,11 @@ final class NikicStatementMapper implements StatementMapper
     private function buildEnumDeclaration(Ast\Declaration\EnumDeclarationNode $enum): Stmt\Enum_
     {
         $node = new Stmt\Enum_(
-            $this->valueMapper->buildIdentifier($enum->name()),
+            $this->valueMapper->buildIdentifier($enum->name()->identifier()),
             [
                 'scalarType' => $this->typeMapper->buildEnumScalarType($enum->scalarType()),
                 'implements' => array_map(
-                    fn (Ast\Value\QualifiedName $interface): Node\Name => $this->valueMapper->buildQualifiedName($interface),
+                    fn (Ast\Name\QualifiedNameNode $interface): Node\Name => $this->valueMapper->buildQualifiedName($interface->qualifiedName()),
                     $enum->implements(),
                 ),
                 'stmts' => $this->context->memberMapper()->buildMembers($enum->members()),
@@ -505,7 +505,7 @@ final class NikicStatementMapper implements StatementMapper
 
     private function buildGotoStatement(Ast\Statement\GotoStatementNode $statement): Stmt\Goto_
     {
-        return new Stmt\Goto_($this->valueMapper->buildIdentifier($statement->label()));
+        return new Stmt\Goto_($this->valueMapper->buildIdentifier($statement->label()->identifier()));
     }
 
     private function buildLabelStatement(Ast\Statement\LabelStatementNode $statement): Stmt\Label

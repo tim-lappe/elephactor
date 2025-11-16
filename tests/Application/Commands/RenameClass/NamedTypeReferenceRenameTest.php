@@ -4,20 +4,23 @@ declare(strict_types=1);
 
 namespace TimLappe\ElephactorTests\Application\Commands\RenameClass;
 
-use TimLappe\Elephactor\Domain\Php\Model\FileHandle;
-use TimLappe\Elephactor\Domain\Php\Model\FileModel\Ast\Value\Identifier;
+use TimLappe\Elephactor\Domain\Php\Index\ClassIndex\Criteria\ClassNameCriteria;
+use TimLappe\Elephactor\Domain\Php\AST\Model\Value\Identifier;
 use TimLappe\Elephactor\Domain\Php\Refactoring\Commands\ClassRename;
 use TimLappe\ElephactorTests\Application\ElephactorTestCase;
+use TimLappe\ElephactorTests\Application\VirtualFile;
 
 final class NamedTypeReferenceRenameTest extends ElephactorTestCase
 {
-    private FileHandle $dependencyClass;
-    private FileHandle $simpleTypeUsage;
-    private FileHandle $qualifiedTypeUsage;
+    private VirtualFile $simpleTypeUsage;
+    private VirtualFile $qualifiedTypeUsage;
 
-    protected function setUp(): void
+    public function setUp(): void
     {
-        $this->dependencyClass = $this->setupFile(['Types'], 'OldDependency', <<<'PHP'
+        parent::setUp();
+
+        $typesDir = $this->sourceDirectory->createOrGetDirecotry('Types');
+        $typesDir->createFile('OldDependency.php', <<<'PHP'
         <?php
 
         namespace VirtualTestNamespace\Types;
@@ -27,7 +30,7 @@ final class NamedTypeReferenceRenameTest extends ElephactorTestCase
         }
         PHP);
 
-        $this->setupFile(['Types'], 'AuxDependency', <<<'PHP'
+        $typesDir->createFile('AuxDependency.php', <<<'PHP'
         <?php
 
         namespace VirtualTestNamespace\Types;
@@ -37,7 +40,8 @@ final class NamedTypeReferenceRenameTest extends ElephactorTestCase
         }
         PHP);
 
-        $this->simpleTypeUsage = $this->setupFile(['Usage'], 'TypeHintedService', <<<'PHP'
+        $usageDir = $this->sourceDirectory->createOrGetDirecotry('Usage');
+        $this->simpleTypeUsage = $usageDir->createFile('TypeHintedService.php', <<<'PHP'
         <?php
 
         namespace VirtualTestNamespace\Usage;
@@ -61,7 +65,8 @@ final class NamedTypeReferenceRenameTest extends ElephactorTestCase
         }
         PHP);
 
-        $this->qualifiedTypeUsage = $this->setupFile(['Usage', 'Qualified'], 'QualifiedTypeHintedService', <<<'PHP'
+        $qualifiedDir = $usageDir->createOrGetDirecotry('Qualified');
+        $this->qualifiedTypeUsage = $qualifiedDir->createFile('QualifiedTypeHintedService.php', <<<'PHP'
         <?php
 
         namespace VirtualTestNamespace\Usage\Qualified;
@@ -77,13 +82,15 @@ final class NamedTypeReferenceRenameTest extends ElephactorTestCase
             }
         }
         PHP);
+
+        $this->workspace->reloadIndices();
     }
 
     public function testRenamesNamedTypeHintsWithImports(): void
     {
         $this->renameDependency();
 
-        $this->codeMatches($this->simpleTypeUsage->readContent(), <<<'PHP'
+        $this->codeMatches($this->simpleTypeUsage->content(), <<<'PHP'
         <?php
 
         namespace VirtualTestNamespace\Usage;
@@ -112,7 +119,7 @@ final class NamedTypeReferenceRenameTest extends ElephactorTestCase
     {
         $this->renameDependency();
 
-        $this->codeMatches($this->qualifiedTypeUsage->readContent(), <<<'PHP'
+        $this->codeMatches($this->qualifiedTypeUsage->content(), <<<'PHP'
         <?php
 
         namespace VirtualTestNamespace\Usage\Qualified;
@@ -132,14 +139,13 @@ final class NamedTypeReferenceRenameTest extends ElephactorTestCase
 
     private function renameDependency(): void
     {
-        $application = $this->buildApplication();
-        $class = $application->getClassFinder()->find('OldDependency');
+        $class = $this->workspace->classLikeIndex()->find(new ClassNameCriteria(new Identifier('OldDependency')))
+            ->first();
         if ($class === null) {
-            throw new \RuntimeException('Class not found');
+            self::fail('Class OldDependency not found in workspace');
         }
 
-        $executor = $application->getRefactoringExecutor();
+        $executor = $this->application->refactoringExecutor();
         $executor->handle(new ClassRename($class, new Identifier('NewDependency')));
     }
 }
-

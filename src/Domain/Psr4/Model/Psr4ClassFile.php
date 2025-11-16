@@ -4,28 +4,19 @@ declare(strict_types=1);
 
 namespace TimLappe\Elephactor\Domain\Psr4\Model;
 
-use TimLappe\Elephactor\Domain\Php\Model\FileModel\PhpClass;
+use TimLappe\Elephactor\Domain\Php\Model\ClassLike\PhpClassLike;
 use TimLappe\Elephactor\Domain\Php\Model\FileModel\PhpFile;
 
-final class Psr4ClassFile extends PhpClass
+final class Psr4ClassFile extends PhpClassLike
 {
     public function __construct(
         PhpFile $file,
-        private Psr4NamespaceSegment $parentSegment,
     ) {
-        $className = str_replace('.php', '', $file->handle()->name());
-        $className = str_replace('/', '\\', $className);
-        $classLikeDeclaration = $file->fileNode()->findClassLikeDeclaration($className);
-
-        if ($classLikeDeclaration === null) {
-            throw new \RuntimeException('Class declaration not found in file: ' . $className . ' in namespace: ' . $parentSegment->fullyQualifiedIdentifier()->name());
+        $classLikeDeclaration = $file->fileNode()->classLikeDeclarations();
+        if (count($classLikeDeclaration) !== 1) {
+            throw new \RuntimeException('Multiple class declarations not supported in file: ' . $file->handle()->name());
         }
 
-        parent::__construct($file, $parentSegment->fullyQualifiedIdentifier(), $classLikeDeclaration);
-    }
-
-    public function psr4NamespaceSegment(): Psr4NamespaceSegment
-    {
-        return $this->parentSegment;
+        parent::__construct($file, $classLikeDeclaration[0]);
     }
 }

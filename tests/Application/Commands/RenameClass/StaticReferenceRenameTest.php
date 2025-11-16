@@ -4,20 +4,23 @@ declare(strict_types=1);
 
 namespace TimLappe\ElephactorTests\Application\Commands\RenameClass;
 
-use TimLappe\Elephactor\Domain\Php\Model\FileHandle;
-use TimLappe\Elephactor\Domain\Php\Model\FileModel\Ast\Value\Identifier;
+use TimLappe\Elephactor\Domain\Php\Index\ClassIndex\Criteria\ClassNameCriteria;
+use TimLappe\Elephactor\Domain\Php\AST\Model\Value\Identifier;
 use TimLappe\Elephactor\Domain\Php\Refactoring\Commands\ClassRename;
 use TimLappe\ElephactorTests\Application\ElephactorTestCase;
+use TimLappe\ElephactorTests\Application\VirtualFile;
 
 final class StaticReferenceRenameTest extends ElephactorTestCase
 {
-    private FileHandle $utilityClass;
-    private FileHandle $methodUsage;
-    private FileHandle $memberUsage;
+    private VirtualFile $methodUsage;
+    private VirtualFile $memberUsage;
 
-    protected function setUp(): void
+    public function setUp(): void
     {
-        $this->utilityClass = $this->setupFile(['Utility'], 'OldUtility', <<<'PHP'
+        parent::setUp();
+
+        $utilityDir = $this->sourceDirectory->createOrGetDirecotry('Utility');
+        $utilityDir->createFile('OldUtility.php', <<<'PHP'
         <?php
 
         namespace VirtualTestNamespace\Utility;
@@ -34,7 +37,8 @@ final class StaticReferenceRenameTest extends ElephactorTestCase
         }
         PHP);
 
-        $this->methodUsage = $this->setupFile(['Usage'], 'StaticCallUsage', <<<'PHP'
+        $usageDir = $this->sourceDirectory->createOrGetDirecotry('Usage');
+        $this->methodUsage = $usageDir->createFile('StaticCallUsage.php', <<<'PHP'
         <?php
 
         namespace VirtualTestNamespace\Usage;
@@ -50,7 +54,8 @@ final class StaticReferenceRenameTest extends ElephactorTestCase
         }
         PHP);
 
-        $this->memberUsage = $this->setupFile(['Usage', 'Members'], 'StaticMembersUsage', <<<'PHP'
+        $membersDir = $usageDir->createOrGetDirecotry('Members');
+        $this->memberUsage = $membersDir->createFile('StaticMembersUsage.php', <<<'PHP'
         <?php
 
         namespace VirtualTestNamespace\Usage\Members;
@@ -63,13 +68,15 @@ final class StaticReferenceRenameTest extends ElephactorTestCase
             }
         }
         PHP);
+
+        $this->workspace->reloadIndices();
     }
 
     public function testRenamesStaticMethodCalls(): void
     {
         $this->renameUtility();
 
-        $this->codeMatches($this->methodUsage->readContent(), <<<'PHP'
+        $this->codeMatches($this->methodUsage->content(), <<<'PHP'
         <?php
 
         namespace VirtualTestNamespace\Usage;
@@ -90,7 +97,7 @@ final class StaticReferenceRenameTest extends ElephactorTestCase
     {
         $this->renameUtility();
 
-        $this->codeMatches($this->memberUsage->readContent(), <<<'PHP'
+        $this->codeMatches($this->memberUsage->content(), <<<'PHP'
         <?php
 
         namespace VirtualTestNamespace\Usage\Members;
@@ -107,14 +114,13 @@ final class StaticReferenceRenameTest extends ElephactorTestCase
 
     private function renameUtility(): void
     {
-        $application = $this->buildApplication();
-        $class = $application->getClassFinder()->find('OldUtility');
+        $class = $this->workspace->classLikeIndex()->find(new ClassNameCriteria(new Identifier('OldUtility')))
+            ->first();
         if ($class === null) {
-            throw new \RuntimeException('Class not found');
+            self::fail('Class OldUtility not found in workspace');
         }
 
-        $executor = $application->getRefactoringExecutor();
+        $executor = $this->application->refactoringExecutor();
         $executor->handle(new ClassRename($class, new Identifier('NewUtility')));
     }
 }
-

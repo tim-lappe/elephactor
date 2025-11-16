@@ -4,20 +4,23 @@ declare(strict_types=1);
 
 namespace TimLappe\ElephactorTests\Application\Commands\RenameClass;
 
-use TimLappe\Elephactor\Domain\Php\Model\FileHandle;
-use TimLappe\Elephactor\Domain\Php\Model\FileModel\Ast\Value\Identifier;
+use TimLappe\Elephactor\Domain\Php\Index\ClassIndex\Criteria\ClassNameCriteria;
+use TimLappe\Elephactor\Domain\Php\AST\Model\Value\Identifier;
 use TimLappe\Elephactor\Domain\Php\Refactoring\Commands\ClassRename;
 use TimLappe\ElephactorTests\Application\ElephactorTestCase;
+use TimLappe\ElephactorTests\Application\VirtualFile;
 
 final class AttributeUsageRenameTest extends ElephactorTestCase
 {
-    private FileHandle $attribute;
-    private FileHandle $simpleUsage;
-    private FileHandle $qualifiedUsage;
+    private VirtualFile $simpleUsage;
+    private VirtualFile $qualifiedUsage;
 
-    protected function setUp(): void
+    public function setUp(): void
     {
-        $this->attribute = $this->setupFile(['Attributes'], 'OldAttribute', <<<'PHP'
+        parent::setUp();
+
+        $attributesDir = $this->sourceDirectory->createOrGetDirecotry('Attributes');
+        $attributesDir->createFile('OldAttribute.php', <<<'PHP'
         <?php
 
         namespace VirtualTestNamespace\Attributes;
@@ -31,7 +34,8 @@ final class AttributeUsageRenameTest extends ElephactorTestCase
         }
         PHP);
 
-        $this->simpleUsage = $this->setupFile(['Usage'], 'SimpleAttributeUsage', <<<'PHP'
+        $usageDir = $this->sourceDirectory->createOrGetDirecotry('Usage');
+        $this->simpleUsage = $usageDir->createFile('SimpleAttributeUsage.php', <<<'PHP'
         <?php
 
         namespace VirtualTestNamespace\Usage;
@@ -48,7 +52,8 @@ final class AttributeUsageRenameTest extends ElephactorTestCase
         }
         PHP);
 
-        $this->qualifiedUsage = $this->setupFile(['Usage', 'Qualified'], 'QualifiedAttributeUsage', <<<'PHP'
+        $qualifiedDir = $usageDir->createOrGetDirecotry('Qualified');
+        $this->qualifiedUsage = $qualifiedDir->createFile('QualifiedAttributeUsage.php', <<<'PHP'
         <?php
 
         namespace VirtualTestNamespace\Usage\Qualified;
@@ -62,13 +67,15 @@ final class AttributeUsageRenameTest extends ElephactorTestCase
             }
         }
         PHP);
+
+        $this->workspace->reloadIndices();
     }
 
     public function testRenamesImportedAttributeUsage(): void
     {
         $this->renameAttribute();
 
-        $this->codeMatches($this->simpleUsage->readContent(), <<<'PHP'
+        $this->codeMatches($this->simpleUsage->content(), <<<'PHP'
         <?php
 
         namespace VirtualTestNamespace\Usage;
@@ -90,7 +97,7 @@ final class AttributeUsageRenameTest extends ElephactorTestCase
     {
         $this->renameAttribute();
 
-        $this->codeMatches($this->qualifiedUsage->readContent(), <<<'PHP'
+        $this->codeMatches($this->qualifiedUsage->content(), <<<'PHP'
         <?php
 
         namespace VirtualTestNamespace\Usage\Qualified;
@@ -108,14 +115,15 @@ final class AttributeUsageRenameTest extends ElephactorTestCase
 
     private function renameAttribute(): void
     {
-        $application = $this->buildApplication();
-        $class = $application->getClassFinder()->find('OldAttribute');
+        $class = $this->workspace->classLikeIndex()->find(new ClassNameCriteria(new Identifier('OldAttribute')))
+            ->first();
+
         if ($class === null) {
-            throw new \RuntimeException('Class not found');
+            self::fail('Class OldAttribute not found in workspace');
         }
 
-        $executor = $application->getRefactoringExecutor();
+
+        $executor = $this->application->refactoringExecutor();
         $executor->handle(new ClassRename($class, new Identifier('NewAttribute')));
     }
 }
-

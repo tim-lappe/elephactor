@@ -4,92 +4,104 @@ declare(strict_types=1);
 
 namespace TimLappe\ElephactorTests\Application\Commands\RenameClass;
 
-use TimLappe\Elephactor\Domain\Php\Model\FileHandle;
-use TimLappe\Elephactor\Domain\Php\Model\FileModel\Ast\Value\Identifier;
+use TimLappe\Elephactor\Domain\Php\Index\ClassIndex\Criteria\ClassNameCriteria;
+use TimLappe\Elephactor\Domain\Php\AST\Model\Value\Identifier;
 use TimLappe\Elephactor\Domain\Php\Refactoring\Commands\ClassRename;
 use TimLappe\ElephactorTests\Application\ElephactorTestCase;
+use TimLappe\ElephactorTests\Application\VirtualFile;
 
 final class AnonymousClassRenameTest extends ElephactorTestCase
 {
-    private FileHandle $baseClass;
-    private FileHandle $anonymousExtendsUsage;
-    private FileHandle $interface;
-    private FileHandle $anonymousImplementsUsage;
+    private VirtualFile $anonymousExtendsUsage;
+    private VirtualFile $anonymousImplementsUsage;
 
-    protected function setUp(): void
+    public function setUp(): void
     {
-        $this->baseClass = $this->setupFile(['Anonymous'], 'OldAnonymousBase', <<<'PHP'
-        <?php
+        parent::setUp();
 
-        namespace VirtualTestNamespace\Anonymous;
+        $this->sourceDirectory
+            ->createOrGetDirecotry('Anonymous')
+            ->createFile('OldAnonymousBase.php', <<<'PHP'
+            <?php
 
-        class OldAnonymousBase
-        {
-            public function value(): string
+            namespace VirtualTestNamespace\Anonymous;
+
+            class OldAnonymousBase
             {
-                return 'base';
-            }
-        }
-        PHP);
-
-        $this->interface = $this->setupFile(['Anonymous'], 'OldAnonymousInterface', <<<'PHP'
-        <?php
-
-        namespace VirtualTestNamespace\Anonymous;
-
-        interface OldAnonymousInterface
-        {
-            public function run(): void;
-        }
-        PHP);
-
-        $this->anonymousExtendsUsage = $this->setupFile(['AnonymousUsage'], 'AnonymousFactory', <<<'PHP'
-        <?php
-
-        namespace VirtualTestNamespace\AnonymousUsage;
-
-        use VirtualTestNamespace\Anonymous\OldAnonymousBase;
-
-        class AnonymousFactory
-        {
-            public function create(): object
-            {
-                return new class extends OldAnonymousBase
+                public function value(): string
                 {
-                    public function marker(): string
-                    {
-                        return 'extended';
-                    }
-                };
+                    return 'base';
+                }
             }
-        }
-        PHP);
+            PHP);
 
-        $this->anonymousImplementsUsage = $this->setupFile(['AnonymousUsage', 'Interfaces'], 'InterfaceAnonymousFactory', <<<'PHP'
-        <?php
+        $this->sourceDirectory
+            ->createOrGetDirecotry('Anonymous')
+            ->createFile('OldAnonymousInterface.php', <<<'PHP'
+            <?php
 
-        namespace VirtualTestNamespace\AnonymousUsage\Interfaces;
+            namespace VirtualTestNamespace\Anonymous;
 
-        class InterfaceAnonymousFactory
-        {
-            public function create(): object
+            interface OldAnonymousInterface
             {
-                return new class implements \VirtualTestNamespace\Anonymous\OldAnonymousInterface
-                {
-                    public function run(): void
-                    {
-                    }
-                };
+                public function run(): void;
             }
-        }
-        PHP);
+            PHP);
+
+        $this->anonymousExtendsUsage = $this->sourceDirectory
+            ->createOrGetDirecotry('AnonymousUsage')
+            ->createFile('AnonymousFactory.php', <<<'PHP'
+            <?php
+
+            namespace VirtualTestNamespace\AnonymousUsage;
+
+            use VirtualTestNamespace\Anonymous\OldAnonymousBase;
+
+            class AnonymousFactory
+            {
+                public function create(): object
+                {
+                    return new class extends OldAnonymousBase
+                    {
+                        public function marker(): string
+                        {
+                            return 'extended';
+                        }
+                    };
+                }
+            }
+            PHP);
+
+        $this->anonymousImplementsUsage = $this->sourceDirectory
+            ->createOrGetDirecotry('AnonymousUsage')
+            ->createOrGetDirecotry('Interfaces')
+            ->createFile('InterfaceAnonymousFactory.php', <<<'PHP'
+            <?php
+
+            namespace VirtualTestNamespace\AnonymousUsage\Interfaces;
+
+            class InterfaceAnonymousFactory
+            {
+                public function create(): object
+                {
+                    return new class implements \VirtualTestNamespace\Anonymous\OldAnonymousInterface
+                    {
+                        public function run(): void
+                        {
+                        }
+                    };
+                }
+            }
+            PHP);
+
+        $this->workspace->reloadIndices();
     }
 
     public function testRenamesAnonymousExtendsReference(): void
     {
         $this->renameTarget('OldAnonymousBase', 'NewAnonymousBase');
 
-        $this->codeMatches($this->anonymousExtendsUsage->readContent(), <<<'PHP'
+        $this->codeMatches($this->anonymousExtendsUsage->content(), <<<'PHP'
         <?php
 
         namespace VirtualTestNamespace\AnonymousUsage;
@@ -116,7 +128,7 @@ final class AnonymousClassRenameTest extends ElephactorTestCase
     {
         $this->renameTarget('OldAnonymousInterface', 'NewAnonymousInterface');
 
-        $this->codeMatches($this->anonymousImplementsUsage->readContent(), <<<'PHP'
+        $this->codeMatches($this->anonymousImplementsUsage->content(), <<<'PHP'
         <?php
 
         namespace VirtualTestNamespace\AnonymousUsage\Interfaces;
@@ -138,14 +150,12 @@ final class AnonymousClassRenameTest extends ElephactorTestCase
 
     private function renameTarget(string $className, string $newName): void
     {
-        $application = $this->buildApplication();
-        $class = $application->getClassFinder()->find($className);
+        $class = $this->workspace->classLikeIndex()->find(new ClassNameCriteria(new Identifier($className)))->first();
         if ($class === null) {
-            throw new \RuntimeException('Class not found');
+            self::fail(sprintf('Class %s not found in workspace', $className));
         }
 
-        $executor = $application->getRefactoringExecutor();
+        $executor = $this->application->refactoringExecutor();
         $executor->handle(new ClassRename($class, new Identifier($newName)));
     }
 }
-

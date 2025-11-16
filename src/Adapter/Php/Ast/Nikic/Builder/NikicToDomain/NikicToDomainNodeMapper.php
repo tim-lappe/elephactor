@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace TimLappe\Elephactor\Adapter\Php\Ast\Nikic\Builder\NikicToDomain;
 
 use PhpParser\Node;
-use TimLappe\Elephactor\Domain\Php\Model\FileModel\Ast as Ast;
+use TimLappe\Elephactor\Domain\Php\AST\Model as Ast;
 
 final class NikicToDomainNodeMapper implements NodeMapperContext
 {

@@ -4,20 +4,23 @@ declare(strict_types=1);
 
 namespace TimLappe\ElephactorTests\Application\Commands\RenameClass;
 
-use TimLappe\Elephactor\Domain\Php\Model\FileHandle;
-use TimLappe\Elephactor\Domain\Php\Model\FileModel\Ast\Value\Identifier;
+use TimLappe\Elephactor\Domain\Php\Index\ClassIndex\Criteria\ClassNameCriteria;
+use TimLappe\Elephactor\Domain\Php\AST\Model\Value\Identifier;
 use TimLappe\Elephactor\Domain\Php\Refactoring\Commands\ClassRename;
 use TimLappe\ElephactorTests\Application\ElephactorTestCase;
+use TimLappe\ElephactorTests\Application\VirtualFile;
 
 final class TraitAdaptationRenameTest extends ElephactorTestCase
 {
-    private FileHandle $legacyTrait;
-    private FileHandle $aliasConsumer;
-    private FileHandle $precedenceConsumer;
+    private VirtualFile $aliasConsumer;
+    private VirtualFile $precedenceConsumer;
 
-    protected function setUp(): void
+    public function setUp(): void
     {
-        $this->legacyTrait = $this->setupFile(['Traits'], 'LegacyTrait', <<<'PHP'
+        parent::setUp();
+
+        $traitsDir = $this->sourceDirectory->createOrGetDirecotry('Traits');
+        $traitsDir->createFile('LegacyTrait.php', <<<'PHP'
         <?php
 
         namespace VirtualTestNamespace\Traits;
@@ -36,7 +39,7 @@ final class TraitAdaptationRenameTest extends ElephactorTestCase
         }
         PHP);
 
-        $this->setupFile(['Traits'], 'SecondaryTrait', <<<'PHP'
+        $traitsDir->createFile('SecondaryTrait.php', <<<'PHP'
         <?php
 
         namespace VirtualTestNamespace\Traits;
@@ -50,7 +53,8 @@ final class TraitAdaptationRenameTest extends ElephactorTestCase
         }
         PHP);
 
-        $this->aliasConsumer = $this->setupFile(['Usage'], 'AliasTraitConsumer', <<<'PHP'
+        $usageDir = $this->sourceDirectory->createOrGetDirecotry('Usage');
+        $this->aliasConsumer = $usageDir->createFile('AliasTraitConsumer.php', <<<'PHP'
         <?php
 
         namespace VirtualTestNamespace\Usage;
@@ -65,7 +69,8 @@ final class TraitAdaptationRenameTest extends ElephactorTestCase
         }
         PHP);
 
-        $this->precedenceConsumer = $this->setupFile(['Usage', 'Precedence'], 'PrecedenceTraitConsumer', <<<'PHP'
+        $precedenceDir = $usageDir->createOrGetDirecotry('Precedence');
+        $this->precedenceConsumer = $precedenceDir->createFile('PrecedenceTraitConsumer.php', <<<'PHP'
         <?php
 
         namespace VirtualTestNamespace\Usage\Precedence;
@@ -81,13 +86,15 @@ final class TraitAdaptationRenameTest extends ElephactorTestCase
             }
         }
         PHP);
+
+        $this->workspace->reloadIndices();
     }
 
     public function testRenamesTraitAliasAdaptation(): void
     {
         $this->renameTrait();
 
-        $this->codeMatches($this->aliasConsumer->readContent(), <<<'PHP'
+        $this->codeMatches($this->aliasConsumer->content(), <<<'PHP'
         <?php
 
         namespace VirtualTestNamespace\Usage;
@@ -107,7 +114,7 @@ final class TraitAdaptationRenameTest extends ElephactorTestCase
     {
         $this->renameTrait();
 
-        $this->codeMatches($this->precedenceConsumer->readContent(), <<<'PHP'
+        $this->codeMatches($this->precedenceConsumer->content(), <<<'PHP'
         <?php
 
         namespace VirtualTestNamespace\Usage\Precedence;
@@ -127,14 +134,13 @@ final class TraitAdaptationRenameTest extends ElephactorTestCase
 
     private function renameTrait(): void
     {
-        $application = $this->buildApplication();
-        $class = $application->getClassFinder()->find('LegacyTrait');
+        $class = $this->workspace->classLikeIndex()->find(new ClassNameCriteria(new Identifier('LegacyTrait')))
+            ->first();
         if ($class === null) {
-            throw new \RuntimeException('Class not found');
+            self::fail('Class LegacyTrait not found in workspace');
         }
 
-        $executor = $application->getRefactoringExecutor();
+        $executor = $this->application->refactoringExecutor();
         $executor->handle(new ClassRename($class, new Identifier('ModernTrait')));
     }
 }
-

@@ -14,22 +14,22 @@ use PhpParser\Node\Name;
 use PhpParser\Node\Param;
 use PhpParser\Node\Scalar;
 use PhpParser\Node\Stmt;
-use TimLappe\Elephactor\Domain\Php\Model\FileModel\Ast as Ast;
-use TimLappe\Elephactor\Domain\Php\Model\FileModel\Ast\Argument\ArgumentNode;
-use TimLappe\Elephactor\Domain\Php\Model\FileModel\Ast\Argument\ParameterNode;
-use TimLappe\Elephactor\Domain\Php\Model\FileModel\Ast\Expression\ArrayItemNode;
-use TimLappe\Elephactor\Domain\Php\Model\FileModel\Ast\Expression\ClosureUseVariableNode;
-use TimLappe\Elephactor\Domain\Php\Model\FileModel\Ast\Expression\ListItemNode;
-use TimLappe\Elephactor\Domain\Php\Model\FileModel\Ast\Expression\MatchArmNode;
-use TimLappe\Elephactor\Domain\Php\Model\FileModel\Ast\ExpressionNode;
-use TimLappe\Elephactor\Domain\Php\Model\FileModel\Ast\Value\AssignmentOperator;
-use TimLappe\Elephactor\Domain\Php\Model\FileModel\Ast\Value\BinaryOperator;
-use TimLappe\Elephactor\Domain\Php\Model\FileModel\Ast\Value\EncapsedStringKind;
-use TimLappe\Elephactor\Domain\Php\Model\FileModel\Ast\Value\IncludeKind;
-use TimLappe\Elephactor\Domain\Php\Model\FileModel\Ast\Value\LiteralKind;
-use TimLappe\Elephactor\Domain\Php\Model\FileModel\Ast\Value\LiteralValue;
-use TimLappe\Elephactor\Domain\Php\Model\FileModel\Ast\Value\ParameterPassingMode;
-use TimLappe\Elephactor\Domain\Php\Model\FileModel\Ast\Value\UnaryOperator;
+use TimLappe\Elephactor\Domain\Php\AST\Model as Ast;
+use TimLappe\Elephactor\Domain\Php\AST\Model\Argument\ArgumentNode;
+use TimLappe\Elephactor\Domain\Php\AST\Model\Argument\ParameterNode;
+use TimLappe\Elephactor\Domain\Php\AST\Model\Expression\ArrayItemNode;
+use TimLappe\Elephactor\Domain\Php\AST\Model\Expression\ClosureUseVariableNode;
+use TimLappe\Elephactor\Domain\Php\AST\Model\Expression\ListItemNode;
+use TimLappe\Elephactor\Domain\Php\AST\Model\Expression\MatchArmNode;
+use TimLappe\Elephactor\Domain\Php\AST\Model\ExpressionNode;
+use TimLappe\Elephactor\Domain\Php\AST\Model\Value\AssignmentOperator;
+use TimLappe\Elephactor\Domain\Php\AST\Model\Value\BinaryOperator;
+use TimLappe\Elephactor\Domain\Php\AST\Model\Value\EncapsedStringKind;
+use TimLappe\Elephactor\Domain\Php\AST\Model\Value\IncludeKind;
+use TimLappe\Elephactor\Domain\Php\AST\Model\Value\LiteralKind;
+use TimLappe\Elephactor\Domain\Php\AST\Model\Value\LiteralValue;
+use TimLappe\Elephactor\Domain\Php\AST\Model\Value\ParameterPassingMode;
+use TimLappe\Elephactor\Domain\Php\AST\Model\Value\UnaryOperator;
 
 final class ExpressionMapper
 {
@@ -45,7 +45,7 @@ final class ExpressionMapper
         return match (true) {
             $expression instanceof Ast\Expression\LiteralExpressionNode => $this->buildLiteralExpression($expression->value()),
             $expression instanceof Ast\Expression\VariableExpressionNode => $this->buildVariableExpression($expression),
-            $expression instanceof Ast\Expression\ConstantFetchExpressionNode => new Expr\ConstFetch($this->valueMapper->buildQualifiedName($expression->name())),
+            $expression instanceof Ast\Expression\ConstantFetchExpressionNode => new Expr\ConstFetch($this->valueMapper->buildQualifiedName($expression->name()->qualifiedName())),
             $expression instanceof Ast\Expression\ClassConstantFetchExpressionNode => $this->buildClassConstFetch($expression),
             $expression instanceof Ast\Expression\PropertyFetchExpressionNode => $this->buildPropertyFetch($expression),
             $expression instanceof Ast\Expression\StaticPropertyFetchExpressionNode => $this->buildStaticPropertyFetch($expression),
@@ -127,7 +127,7 @@ final class ExpressionMapper
                 false,
                 $argument->isUnpacked(),
                 [],
-                $argument->name() !== null ? $this->valueMapper->buildIdentifier($argument->name()) : null,
+                $argument->name() !== null ? $this->valueMapper->buildIdentifier($argument->name()->identifier()) : null,
             ),
             $arguments,
         );
@@ -344,8 +344,8 @@ final class ExpressionMapper
     private function buildVariableExpression(Ast\Expression\VariableExpressionNode $expression): Expr
     {
         $name = $expression->name();
-        if ($name instanceof Ast\Value\Identifier) {
-            return new Expr\Variable($name->value());
+        if ($name instanceof Ast\Name\IdentifierNode) {
+            return new Expr\Variable($name->identifier()->value());
         }
 
         return new Expr\Variable($this->buildExpression($name));
@@ -356,19 +356,19 @@ final class ExpressionMapper
         $class = $expression->classReference();
         $classExpr = $class instanceof ExpressionNode
             ? $this->buildExpression($class)
-            : $this->valueMapper->buildQualifiedName($class);
+            : $this->valueMapper->buildQualifiedName($class->qualifiedName());
 
         return new Expr\ClassConstFetch(
             $classExpr,
-            $this->valueMapper->buildIdentifier($expression->constant()),
+            $this->valueMapper->buildIdentifier($expression->constant()->identifier()),
         );
     }
 
     private function buildPropertyFetch(Ast\Expression\PropertyFetchExpressionNode $expression): Expr
     {
         $name = $expression->property();
-        $property = $name instanceof Ast\Value\Identifier
-            ? $this->valueMapper->buildIdentifier($name)
+        $property = $name instanceof Ast\Name\IdentifierNode
+            ? $this->valueMapper->buildIdentifier($name->identifier())
             : $this->buildExpression($name);
 
         if ($expression->isNullsafe()) {
@@ -389,11 +389,11 @@ final class ExpressionMapper
         $class = $expression->classReference();
         $classExpr = $class instanceof ExpressionNode
             ? $this->buildExpression($class)
-            : $this->valueMapper->buildQualifiedName($class);
+            : $this->valueMapper->buildQualifiedName($class->qualifiedName());
 
         $name = $expression->property();
-        $property = $name instanceof Ast\Value\Identifier
-            ? new Node\VarLikeIdentifier($name->value())
+        $property = $name instanceof Ast\Name\IdentifierNode
+            ? new Node\VarLikeIdentifier($name->identifier()->value())
             : $this->buildExpression($name);
 
         return new Expr\StaticPropertyFetch($classExpr, $property);
@@ -420,7 +420,7 @@ final class ExpressionMapper
         $callable = $expression->callable();
         $name = $callable instanceof ExpressionNode
             ? $this->buildExpression($callable)
-            : $this->valueMapper->buildQualifiedName($callable);
+            : $this->valueMapper->buildQualifiedName($callable->qualifiedName());
 
         return new Expr\FuncCall(
             $name,
@@ -431,8 +431,8 @@ final class ExpressionMapper
     private function buildMethodCall(Ast\Expression\MethodCallExpressionNode $expression): Expr
     {
         $method = $expression->method();
-        $name = $method instanceof Ast\Value\Identifier
-            ? $this->valueMapper->buildIdentifier($method)
+        $name = $method instanceof Ast\Name\IdentifierNode
+            ? $this->valueMapper->buildIdentifier($method->identifier())
             : $this->buildExpression($method);
 
         if ($expression->isNullsafe()) {
@@ -455,11 +455,11 @@ final class ExpressionMapper
         $class = $expression->classReference();
         $classExpr = $class instanceof ExpressionNode
             ? $this->buildExpression($class)
-            : $this->valueMapper->buildQualifiedName($class);
+            : $this->valueMapper->buildQualifiedName($class->qualifiedName());
 
         $method = $expression->method();
-        $name = $method instanceof Ast\Value\Identifier
-            ? $this->valueMapper->buildIdentifier($method)
+        $name = $method instanceof Ast\Name\IdentifierNode
+            ? $this->valueMapper->buildIdentifier($method->identifier())
             : $this->buildExpression($method);
 
         return new Expr\StaticCall(
@@ -474,7 +474,7 @@ final class ExpressionMapper
         $class = $expression->classReference();
         $classExpr = $class instanceof ExpressionNode
             ? $this->buildExpression($class)
-            : $this->valueMapper->buildQualifiedName($class);
+            : $this->valueMapper->buildQualifiedName($class->qualifiedName());
 
         return new Expr\New_(
             $classExpr,
@@ -486,9 +486,9 @@ final class ExpressionMapper
     {
         $classStmt = new Stmt\Class_(null, [
             'flags' => $this->valueMapper->buildClassFlags($expression->modifiers()),
-            'extends' => $expression->extends() !== null ? $this->valueMapper->buildQualifiedName($expression->extends()) : null,
+            'extends' => $expression->extends() !== null ? $this->valueMapper->buildQualifiedName($expression->extends()->qualifiedName()) : null,
             'implements' => array_map(
-                fn (Ast\Value\QualifiedName $name): Name => $this->valueMapper->buildQualifiedName($name),
+                fn (Ast\Name\QualifiedNameNode $name): Name => $this->valueMapper->buildQualifiedName($name->qualifiedName()),
                 $expression->interfaces(),
             ),
             'stmts' => $this->context->memberMapper()->buildMembers($expression->members()),
@@ -613,7 +613,7 @@ final class ExpressionMapper
 
             $class = $typeNode;
         } else {
-            $class = $this->valueMapper->buildQualifiedName($reference);
+            $class = $this->valueMapper->buildQualifiedName($reference->qualifiedName());
         }
 
         return new Expr\Instanceof_(

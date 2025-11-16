@@ -4,20 +4,23 @@ declare(strict_types=1);
 
 namespace TimLappe\ElephactorTests\Application\Commands\RenameClass;
 
-use TimLappe\Elephactor\Domain\Php\Model\FileHandle;
-use TimLappe\Elephactor\Domain\Php\Model\FileModel\Ast\Value\Identifier;
+use TimLappe\Elephactor\Domain\Php\Index\ClassIndex\Criteria\ClassNameCriteria;
+use TimLappe\Elephactor\Domain\Php\AST\Model\Value\Identifier;
 use TimLappe\Elephactor\Domain\Php\Refactoring\Commands\ClassRename;
 use TimLappe\ElephactorTests\Application\ElephactorTestCase;
+use TimLappe\ElephactorTests\Application\VirtualFile;
 
 final class TraitUseRenameTest extends ElephactorTestCase
 {
-    private FileHandle $traitFile;
-    private FileHandle $simpleUsage;
-    private FileHandle $qualifiedUsage;
+    private VirtualFile $simpleUsage;
+    private VirtualFile $qualifiedUsage;
 
-    protected function setUp(): void
+    public function setUp(): void
     {
-        $this->traitFile = $this->setupFile(['Traits'], 'OldTrait', <<<'PHP'
+        parent::setUp();
+
+        $traitsDir = $this->sourceDirectory->createOrGetDirecotry('Traits');
+        $traitsDir->createFile('OldTrait.php', <<<'PHP'
         <?php
 
         namespace VirtualTestNamespace\Traits;
@@ -31,7 +34,8 @@ final class TraitUseRenameTest extends ElephactorTestCase
         }
         PHP);
 
-        $this->simpleUsage = $this->setupFile(['Usage'], 'SimpleTraitConsumer', <<<'PHP'
+        $usageDir = $this->sourceDirectory->createOrGetDirecotry('Usage');
+        $this->simpleUsage = $usageDir->createFile('SimpleTraitConsumer.php', <<<'PHP'
         <?php
 
         namespace VirtualTestNamespace\Usage;
@@ -44,7 +48,8 @@ final class TraitUseRenameTest extends ElephactorTestCase
         }
         PHP);
 
-        $this->qualifiedUsage = $this->setupFile(['Usage', 'Qualified'], 'QualifiedTraitConsumer', <<<'PHP'
+        $qualifiedDir = $usageDir->createOrGetDirecotry('Qualified');
+        $this->qualifiedUsage = $qualifiedDir->createFile('QualifiedTraitConsumer.php', <<<'PHP'
         <?php
 
         namespace VirtualTestNamespace\Usage\Qualified;
@@ -54,13 +59,15 @@ final class TraitUseRenameTest extends ElephactorTestCase
             use \VirtualTestNamespace\Traits\OldTrait;
         }
         PHP);
+
+        $this->workspace->reloadIndices();
     }
 
     public function testRenamesTraitUseWithImport(): void
     {
         $this->renameTrait();
 
-        $this->codeMatches($this->simpleUsage->readContent(), <<<'PHP'
+        $this->codeMatches($this->simpleUsage->content(), <<<'PHP'
         <?php
 
         namespace VirtualTestNamespace\Usage;
@@ -78,7 +85,7 @@ final class TraitUseRenameTest extends ElephactorTestCase
     {
         $this->renameTrait();
 
-        $this->codeMatches($this->qualifiedUsage->readContent(), <<<'PHP'
+        $this->codeMatches($this->qualifiedUsage->content(), <<<'PHP'
         <?php
 
         namespace VirtualTestNamespace\Usage\Qualified;
@@ -92,14 +99,13 @@ final class TraitUseRenameTest extends ElephactorTestCase
 
     private function renameTrait(): void
     {
-        $application = $this->buildApplication();
-        $class = $application->getClassFinder()->find('OldTrait');
+        $class = $this->workspace->classLikeIndex()->find(new ClassNameCriteria(new Identifier('OldTrait')))
+            ->first();
         if ($class === null) {
-            throw new \RuntimeException('Class not found');
+            self::fail('Class OldTrait not found in workspace');
         }
 
-        $executor = $application->getRefactoringExecutor();
+        $executor = $this->application->refactoringExecutor();
         $executor->handle(new ClassRename($class, new Identifier('NewTrait')));
     }
 }
-

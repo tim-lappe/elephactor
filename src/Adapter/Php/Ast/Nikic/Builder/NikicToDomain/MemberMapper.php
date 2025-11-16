@@ -7,8 +7,8 @@ namespace TimLappe\Elephactor\Adapter\Php\Ast\Nikic\Builder\NikicToDomain;
 use PhpParser\Node;
 use PhpParser\Node\Name;
 use PhpParser\Node\Stmt;
-use TimLappe\Elephactor\Domain\Php\Model\FileModel\Ast as Ast;
-use TimLappe\Elephactor\Domain\Php\Model\FileModel\Ast\Trivia\WhitespaceNode;
+use TimLappe\Elephactor\Domain\Php\AST\Model as Ast;
+use TimLappe\Elephactor\Domain\Php\AST\Model\Trivia\WhitespaceNode;
 
 final class MemberMapper
 {
@@ -72,11 +72,12 @@ final class MemberMapper
 
     private function mapMethodDeclaration(Stmt\ClassMethod $method): Ast\Declaration\MethodDeclarationNode
     {
-        $bodyStatements = $method->stmts !== null ? $this->context->statementMapper()->mapStatements($method->stmts) : [];
+        $hasBody = $method->stmts !== null;
+        $bodyStatements = $hasBody ? $this->context->statementMapper()->mapStatements($method->stmts ?? []) : [];
 
         return new Ast\Declaration\MethodDeclarationNode(
             $this->valueMapper->getTypeMapper()->mapIdentifier($method->name),
-            $this->valueMapper->mapMethodModifiers($method->flags),
+            $this->valueMapper->mapMethodModifiers($method->flags, !$hasBody),
             $this->valueMapper->mapAttributeGroups($method->attrGroups),
             $this->context->expressionMapper()->mapParameters($method->params),
             $bodyStatements,

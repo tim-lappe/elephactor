@@ -8,8 +8,8 @@ use PhpParser\Node;
 use PhpParser\Node\Expr;
 use PhpParser\Node\Name;
 use PhpParser\Node\Stmt;
-use TimLappe\Elephactor\Domain\Php\Model\FileModel\Ast as Ast;
-use TimLappe\Elephactor\Domain\Php\Model\FileModel\Ast\Trivia\WhitespaceNode;
+use TimLappe\Elephactor\Domain\Php\AST\Model as Ast;
+use TimLappe\Elephactor\Domain\Php\AST\Model\Trivia\WhitespaceNode;
 
 final class StatementMapper
 {
@@ -191,6 +191,10 @@ final class StatementMapper
         $name = $namespace->name !== null ? $this->valueMapper->getTypeMapper()->mapQualifiedName($namespace->name) : null;
         $kind = $namespace->getAttribute('kind');
         $statements = $this->mapStatements($namespace->stmts);
+
+        if ($name === null) {
+            throw new \RuntimeException('Namespace name is required');
+        }
 
         return new Ast\Statement\NamespaceDefinitionNode(
             $name,

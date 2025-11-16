@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace TimLappe\Elephactor\Adapter\Php\Ast\Nikic\Builder\DomainToNikic;
 
 use PhpParser\Node\Stmt;
-use TimLappe\Elephactor\Domain\Php\Model\FileModel\Ast\MemberNode;
+use TimLappe\Elephactor\Domain\Php\AST\Model\MemberNode;
 
 interface MemberMapper
 {

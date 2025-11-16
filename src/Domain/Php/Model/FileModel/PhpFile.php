@@ -4,36 +4,24 @@ declare(strict_types=1);
 
 namespace TimLappe\Elephactor\Domain\Php\Model\FileModel;
 
-use TimLappe\Elephactor\Domain\Php\Model\FileHandle;
-use TimLappe\Elephactor\Domain\Php\Model\FileModel\Ast\FileNode;
+use TimLappe\Elephactor\Domain\Php\Analysis\Model\SemanticFileNode;
+use TimLappe\Elephactor\Domain\Workspace\Model\Filesystem\File;
 
 final class PhpFile
 {
-    /**
-     * @param list<PhpClass> $classes
-     */
     public function __construct(
-        private readonly FileHandle $handle,
-        private readonly FileNode $fileNode,
-        private readonly array $classes = []
+        private readonly File $handle,
+        private readonly SemanticFileNode $fileNode,
     ) {
     }
 
-    final public function handle(): FileHandle
+    final public function handle(): File
     {
         return $this->handle;
     }
 
-    final public function fileNode(): FileNode
+    final public function fileNode(): SemanticFileNode
     {
         return $this->fileNode;
-    }
-
-    /**
-     * @return list<PhpClass>
-     */
-    final public function classes(): array
-    {
-        return $this->classes;
     }
 }

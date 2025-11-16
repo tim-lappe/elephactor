@@ -4,20 +4,23 @@ declare(strict_types=1);
 
 namespace TimLappe\ElephactorTests\Application\Commands\RenameClass;
 
-use TimLappe\Elephactor\Domain\Php\Model\FileHandle;
-use TimLappe\Elephactor\Domain\Php\Model\FileModel\Ast\Value\Identifier;
+use TimLappe\Elephactor\Domain\Php\Index\ClassIndex\Criteria\ClassNameCriteria;
+use TimLappe\Elephactor\Domain\Php\AST\Model\Value\Identifier;
 use TimLappe\Elephactor\Domain\Php\Refactoring\Commands\ClassRename;
 use TimLappe\ElephactorTests\Application\ElephactorTestCase;
+use TimLappe\ElephactorTests\Application\VirtualFile;
 
 final class NewExpressionRenameTest extends ElephactorTestCase
 {
-    private FileHandle $serviceClass;
-    private FileHandle $simpleFactory;
-    private FileHandle $qualifiedFactory;
+    private VirtualFile $simpleFactory;
+    private VirtualFile $qualifiedFactory;
 
-    protected function setUp(): void
+    public function setUp(): void
     {
-        $this->serviceClass = $this->setupFile(['Services'], 'OldService', <<<'PHP'
+        parent::setUp();
+
+        $servicesDir = $this->sourceDirectory->createOrGetDirecotry('Services');
+        $servicesDir->createFile('OldService.php', <<<'PHP'
         <?php
 
         namespace VirtualTestNamespace\Services;
@@ -27,7 +30,8 @@ final class NewExpressionRenameTest extends ElephactorTestCase
         }
         PHP);
 
-        $this->simpleFactory = $this->setupFile(['Factories'], 'SimpleFactory', <<<'PHP'
+        $factoriesDir = $this->sourceDirectory->createOrGetDirecotry('Factories');
+        $this->simpleFactory = $factoriesDir->createFile('SimpleFactory.php', <<<'PHP'
         <?php
 
         namespace VirtualTestNamespace\Factories;
@@ -43,7 +47,8 @@ final class NewExpressionRenameTest extends ElephactorTestCase
         }
         PHP);
 
-        $this->qualifiedFactory = $this->setupFile(['Factories', 'Advanced'], 'QualifiedFactory', <<<'PHP'
+        $advancedDir = $factoriesDir->createOrGetDirecotry('Advanced');
+        $this->qualifiedFactory = $advancedDir->createFile('QualifiedFactory.php', <<<'PHP'
         <?php
 
         namespace VirtualTestNamespace\Factories\Advanced;
@@ -56,13 +61,15 @@ final class NewExpressionRenameTest extends ElephactorTestCase
             }
         }
         PHP);
+
+        $this->workspace->reloadIndices();
     }
 
     public function testRenamesNewExpressionWithImport(): void
     {
         $this->renameService();
 
-        $this->codeMatches($this->simpleFactory->readContent(), <<<'PHP'
+        $this->codeMatches($this->simpleFactory->content(), <<<'PHP'
         <?php
 
         namespace VirtualTestNamespace\Factories;
@@ -83,7 +90,7 @@ final class NewExpressionRenameTest extends ElephactorTestCase
     {
         $this->renameService();
 
-        $this->codeMatches($this->qualifiedFactory->readContent(), <<<'PHP'
+        $this->codeMatches($this->qualifiedFactory->content(), <<<'PHP'
         <?php
 
         namespace VirtualTestNamespace\Factories\Advanced;
@@ -100,14 +107,13 @@ final class NewExpressionRenameTest extends ElephactorTestCase
 
     private function renameService(): void
     {
-        $application = $this->buildApplication();
-        $class = $application->getClassFinder()->find('OldService');
+        $class = $this->workspace->classLikeIndex()->find(new ClassNameCriteria(new Identifier('OldService')))
+            ->first();
         if ($class === null) {
-            throw new \RuntimeException('Class not found');
+            self::fail('Class OldService not found in workspace');
         }
 
-        $executor = $application->getRefactoringExecutor();
+        $executor = $this->application->refactoringExecutor();
         $executor->handle(new ClassRename($class, new Identifier('NewService')));
     }
 }
-
