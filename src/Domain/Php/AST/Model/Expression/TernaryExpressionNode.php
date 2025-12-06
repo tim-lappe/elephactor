@@ -9,14 +9,14 @@ use TimLappe\Elephactor\Domain\Php\AST\Model\ExpressionNode;
 use TimLappe\Elephactor\Domain\Php\AST\Model\Node;
 use TimLappe\Elephactor\Domain\Php\AST\Model\NodeKind;
 
-final class TernaryExpressionNode extends AbstractNode implements ExpressionNode
+final readonly class TernaryExpressionNode extends AbstractNode implements ExpressionNode
 {
     public function __construct(
         private readonly ExpressionNode $condition,
         private readonly ?ExpressionNode $ifTrue,
         private readonly ExpressionNode $ifFalse
     ) {
-        parent::__construct(NodeKind::TERNARY_EXPRESSION);
+        parent::__construct();
     }
 
     public function condition(): ExpressionNode

@@ -10,6 +10,4 @@ use TimLappe\Elephactor\Domain\Php\AST\Model\Value\Identifier;
 interface ClassLikeNode extends DeclarationNode
 {
     public function name(): IdentifierNode;
-
-    public function changeName(Identifier $name): void;
 }

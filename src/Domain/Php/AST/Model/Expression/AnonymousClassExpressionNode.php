@@ -9,13 +9,11 @@ use TimLappe\Elephactor\Domain\Php\AST\Model\Argument\ArgumentNode;
 use TimLappe\Elephactor\Domain\Php\AST\Model\Attribute\AttributeGroupNode;
 use TimLappe\Elephactor\Domain\Php\AST\Model\ExpressionNode;
 use TimLappe\Elephactor\Domain\Php\AST\Model\MemberNode;
-use TimLappe\Elephactor\Domain\Php\AST\Model\Node;
-use TimLappe\Elephactor\Domain\Php\AST\Model\NodeKind;
 use TimLappe\Elephactor\Domain\Php\AST\Model\Value\ClassModifiers;
 use TimLappe\Elephactor\Domain\Php\AST\Model\Value\QualifiedName;
 use TimLappe\Elephactor\Domain\Php\AST\Model\Name\QualifiedNameNode;
 
-final class AnonymousClassExpressionNode extends AbstractNode implements ExpressionNode
+final readonly class AnonymousClassExpressionNode extends AbstractNode implements ExpressionNode
 {
     private ?QualifiedNameNode $extends = null;
     /**
@@ -37,13 +35,33 @@ final class AnonymousClassExpressionNode extends AbstractNode implements Express
         private readonly ClassModifiers $modifiers = new ClassModifiers(),
         ?QualifiedName $extends = null
     ) {
-        parent::__construct(NodeKind::ANONYMOUS_CLASS_EXPRESSION);
+        parent::__construct();
 
-        $this->extends = $extends !== null ? new QualifiedNameNode($extends, $this) : null;
+        $this->extends = $extends !== null ? new QualifiedNameNode($extends) : null;
         $this->interfaces = array_map(
-            fn (QualifiedName $interface): QualifiedNameNode => new QualifiedNameNode($interface, $this),
+            fn (QualifiedName $interface): QualifiedNameNode => new QualifiedNameNode($interface),
             $interfaces,
         );
+
+        foreach ($this->attributes as $attribute) {
+            $this->children()->add($attribute);
+        }
+
+        foreach ($this->constructorArguments as $constructorArgument) {
+            $this->children()->add($constructorArgument);
+        }
+
+        foreach ($this->members as $member) {
+            $this->children()->add($member);
+        }
+
+        foreach ($this->interfaces as $interface) {
+            $this->children()->add($interface);
+        }
+
+        if ($this->extends !== null) {
+            $this->children()->add($this->extends);
+        }
     }
 
     /**
@@ -86,17 +104,5 @@ final class AnonymousClassExpressionNode extends AbstractNode implements Express
     public function extends(): ?QualifiedNameNode
     {
         return $this->extends;
-    }
-
-    /**
-     * @return list<Node>
-     */
-    public function children(): array
-    {
-        return [
-            ...$this->attributes,
-            ...$this->constructorArguments,
-            ...$this->members,
-        ];
     }
 }

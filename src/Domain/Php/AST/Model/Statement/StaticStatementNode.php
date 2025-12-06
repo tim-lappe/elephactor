@@ -9,7 +9,7 @@ use TimLappe\Elephactor\Domain\Php\AST\Model\Node;
 use TimLappe\Elephactor\Domain\Php\AST\Model\NodeKind;
 use TimLappe\Elephactor\Domain\Php\AST\Model\StatementNode;
 
-final class StaticStatementNode extends AbstractNode implements StatementNode
+final readonly class StaticStatementNode extends AbstractNode implements StatementNode
 {
     /**
      * @param list<StaticVariableNode> $variables
@@ -21,7 +21,7 @@ final class StaticStatementNode extends AbstractNode implements StatementNode
             throw new \InvalidArgumentException('Static statement requires at least one variable');
         }
 
-        parent::__construct(NodeKind::STATIC_STATEMENT);
+        parent::__construct();
     }
 
     /**

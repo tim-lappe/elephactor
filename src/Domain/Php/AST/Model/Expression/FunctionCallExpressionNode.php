@@ -8,11 +8,9 @@ use TimLappe\Elephactor\Domain\Php\AST\Model\AbstractNode;
 use TimLappe\Elephactor\Domain\Php\AST\Model\Argument\ArgumentNode;
 use TimLappe\Elephactor\Domain\Php\AST\Model\Name\QualifiedNameNode;
 use TimLappe\Elephactor\Domain\Php\AST\Model\ExpressionNode;
-use TimLappe\Elephactor\Domain\Php\AST\Model\Node;
-use TimLappe\Elephactor\Domain\Php\AST\Model\NodeKind;
 use TimLappe\Elephactor\Domain\Php\AST\Model\Value\QualifiedName;
 
-final class FunctionCallExpressionNode extends AbstractNode implements ExpressionNode
+final readonly class FunctionCallExpressionNode extends AbstractNode implements ExpressionNode
 {
     private QualifiedNameNode|ExpressionNode $callable;
     /**
@@ -22,11 +20,17 @@ final class FunctionCallExpressionNode extends AbstractNode implements Expressio
         QualifiedName|ExpressionNode $callable,
         private readonly array $arguments
     ) {
-        parent::__construct(NodeKind::FUNCTION_CALL_EXPRESSION);
+        parent::__construct();
 
         $this->callable = $callable instanceof QualifiedName
-            ? new QualifiedNameNode($callable, $this)
+            ? new QualifiedNameNode($callable)
             : $callable;
+
+        $this->children()->add($this->callable);
+
+        foreach ($this->arguments as $argument) {
+            $this->children()->add($argument);
+        }
     }
 
     public function callable(): QualifiedNameNode|ExpressionNode
@@ -40,17 +44,5 @@ final class FunctionCallExpressionNode extends AbstractNode implements Expressio
     public function arguments(): array
     {
         return $this->arguments;
-    }
-
-    /**
-     * @return list<Node>
-     */
-    public function children(): array
-    {
-        $children = $this->arguments;
-
-        array_unshift($children, $this->callable);
-
-        return $children;
     }
 }

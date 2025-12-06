@@ -10,21 +10,13 @@ use TimLappe\Elephactor\Domain\Php\AST\Model\Name\IdentifierNode;
 use TimLappe\Elephactor\Domain\Php\AST\Model\Name\QualifiedNameNode;
 use TimLappe\Elephactor\Domain\Php\AST\Model\ClassLikeNode;
 use TimLappe\Elephactor\Domain\Php\AST\Model\MemberNode;
-use TimLappe\Elephactor\Domain\Php\AST\Model\Node;
-use TimLappe\Elephactor\Domain\Php\AST\Model\NodeKind;
 use TimLappe\Elephactor\Domain\Php\AST\Model\TypeNode;
 use TimLappe\Elephactor\Domain\Php\AST\Model\Value\DocBlock;
 use TimLappe\Elephactor\Domain\Php\AST\Model\Value\Identifier;
 use TimLappe\Elephactor\Domain\Php\AST\Model\Value\QualifiedName;
 
-final class EnumDeclarationNode extends AbstractNode implements ClassLikeNode
+final readonly class EnumDeclarationNode extends AbstractNode implements ClassLikeNode
 {
-    private IdentifierNode $name;
-
-    /**
-     * @var list<QualifiedNameNode>
-     */
-    private readonly array $implements;
     /**
      * @param list<AttributeGroupNode> $attributes
      * @param list<QualifiedName>      $implements
@@ -32,29 +24,42 @@ final class EnumDeclarationNode extends AbstractNode implements ClassLikeNode
      */
     public function __construct(
         Identifier $name,
-        private readonly array $attributes,
+        array $attributes,
         array $implements,
-        private readonly array $members,
-        private readonly ?TypeNode $scalarType = null,
+        array $members,
+        ?TypeNode $scalarType = null,
         private readonly ?DocBlock $docBlock = null
     ) {
-        parent::__construct(NodeKind::ENUM_DECLARATION);
+        parent::__construct();
 
-        $this->name = new IdentifierNode($name, $this);
-        $this->implements = array_map(
-            fn (QualifiedName $implementation): QualifiedNameNode => new QualifiedNameNode($implementation, $this),
+        $name = new IdentifierNode($name);
+        $implements = array_map(
+            fn (QualifiedName $implementation): QualifiedNameNode => new QualifiedNameNode($implementation),
             $implements,
         );
+
+        $this->children()->add("name", $name);
+
+        foreach ($attributes as $attribute) {
+            $this->children()->add("attribute", $attribute);
+        }
+
+        foreach ($implements as $implementation) {
+            $this->children()->add("implementation", $implementation);
+        }
+
+        foreach ($members as $member) {
+            $this->children()->add("member", $member);
+        }
+
+        if ($scalarType !== null) {
+            $this->children()->add("scalarType", $scalarType);
+        }
     }
 
     public function name(): IdentifierNode
     {
-        return $this->name;
-    }
-
-    public function changeName(Identifier $name): void
-    {
-        $this->name->changeIdentifier($name);
+        return $this->children()->getOne("name", IdentifierNode::class) ?? throw new \RuntimeException('Name not found');
     }
 
     /**
@@ -62,7 +67,7 @@ final class EnumDeclarationNode extends AbstractNode implements ClassLikeNode
      */
     public function attributes(): array
     {
-        return $this->attributes;
+        return $this->children()->getAllOf("attribute", AttributeGroupNode::class);
     }
 
     /**
@@ -70,7 +75,7 @@ final class EnumDeclarationNode extends AbstractNode implements ClassLikeNode
      */
     public function implements(): array
     {
-        return $this->implements;
+        return $this->children()->getAllOf("implementation", QualifiedNameNode::class);
     }
 
     /**
@@ -78,35 +83,16 @@ final class EnumDeclarationNode extends AbstractNode implements ClassLikeNode
      */
     public function members(): array
     {
-        return $this->members;
+        return $this->children()->getAllOf("member", MemberNode::class);
     }
 
     public function scalarType(): ?TypeNode
     {
-        return $this->scalarType;
+        return $this->children()->getOne("scalarType", TypeNode::class);
     }
 
     public function docBlock(): ?DocBlock
     {
         return $this->docBlock;
-    }
-
-    /**
-     * @return list<Node>
-     */
-    public function children(): array
-    {
-        $children = [
-            $this->name,
-            ...$this->attributes,
-            ...$this->implements,
-            ...$this->members,
-        ];
-
-        if ($this->scalarType !== null) {
-            $children[] = $this->scalarType;
-        }
-
-        return $children;
     }
 }

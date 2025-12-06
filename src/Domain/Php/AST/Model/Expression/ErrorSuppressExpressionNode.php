@@ -9,12 +9,12 @@ use TimLappe\Elephactor\Domain\Php\AST\Model\ExpressionNode;
 use TimLappe\Elephactor\Domain\Php\AST\Model\Node;
 use TimLappe\Elephactor\Domain\Php\AST\Model\NodeKind;
 
-final class ErrorSuppressExpressionNode extends AbstractNode implements ExpressionNode
+final readonly class ErrorSuppressExpressionNode extends AbstractNode implements ExpressionNode
 {
     public function __construct(
         private readonly ExpressionNode $expression
     ) {
-        parent::__construct(NodeKind::ERROR_SUPPRESS_EXPRESSION);
+        parent::__construct();
     }
 
     public function expression(): ExpressionNode

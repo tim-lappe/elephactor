@@ -10,13 +10,13 @@ use TimLappe\Elephactor\Domain\Php\AST\Model\Node;
 use TimLappe\Elephactor\Domain\Php\AST\Model\NodeKind;
 use TimLappe\Elephactor\Domain\Php\AST\Model\Value\Identifier;
 
-final class DeclareDirectiveNode extends AbstractNode
+final readonly class DeclareDirectiveNode extends AbstractNode
 {
     public function __construct(
         private readonly Identifier $name,
         private readonly ExpressionNode $value
     ) {
-        parent::__construct(NodeKind::DECLARE_DIRECTIVE);
+        parent::__construct();
     }
 
     public function name(): Identifier

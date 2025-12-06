@@ -6,30 +6,41 @@ namespace TimLappe\Elephactor\Domain\Php\AST\Model\Statement;
 
 use TimLappe\Elephactor\Domain\Php\AST\Model\AbstractNode;
 use TimLappe\Elephactor\Domain\Php\AST\Model\ExpressionNode;
-use TimLappe\Elephactor\Domain\Php\AST\Model\Node;
-use TimLappe\Elephactor\Domain\Php\AST\Model\NodeKind;
 use TimLappe\Elephactor\Domain\Php\AST\Model\StatementNode;
 
-final class SwitchCaseNode extends AbstractNode
+final readonly class SwitchCaseNode extends AbstractNode
 {
+    private bool $hasCondition;
+    private int $statementsOffset;
     /**
      * @param list<StatementNode> $statements
      */
     public function __construct(
-        private readonly ?ExpressionNode $condition,
-        private readonly array $statements
+        ?ExpressionNode $condition,
+        array $statements
     ) {
-        parent::__construct(NodeKind::SWITCH_CASE);
+        parent::__construct();
+
+        $this->hasCondition = $condition !== null;
+        $this->statementsOffset = $this->hasCondition ? 1 : 0;
+
+        if ($condition !== null) {
+            $this->children()->add($condition);
+        }
+
+        foreach ($statements as $statement) {
+            $this->children()->add($statement);
+        }
     }
 
     public function condition(): ?ExpressionNode
     {
-        return $this->condition;
+        return $this->hasCondition ? $this->children()->toArray()[0] : null;
     }
 
     public function isDefault(): bool
     {
-        return $this->condition === null;
+        return $this->hasCondition === false;
     }
 
     /**
@@ -37,20 +48,9 @@ final class SwitchCaseNode extends AbstractNode
      */
     public function statements(): array
     {
-        return $this->statements;
-    }
-
-    /**
-     * @return list<Node>
-     */
-    public function children(): array
-    {
-        $children = $this->statements;
-
-        if ($this->condition !== null) {
-            array_unshift($children, $this->condition);
-        }
-
-        return $children;
+        return array_slice(
+            $this->children()->toArray(),
+            $this->statementsOffset,
+        );
     }
 }

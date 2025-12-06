@@ -9,12 +9,10 @@ use TimLappe\Elephactor\Domain\Php\AST\Model\Argument\ArgumentNode;
 use TimLappe\Elephactor\Domain\Php\AST\Model\Name\IdentifierNode;
 use TimLappe\Elephactor\Domain\Php\AST\Model\Name\QualifiedNameNode;
 use TimLappe\Elephactor\Domain\Php\AST\Model\ExpressionNode;
-use TimLappe\Elephactor\Domain\Php\AST\Model\Node;
-use TimLappe\Elephactor\Domain\Php\AST\Model\NodeKind;
 use TimLappe\Elephactor\Domain\Php\AST\Model\Value\Identifier;
 use TimLappe\Elephactor\Domain\Php\AST\Model\Value\QualifiedName;
 
-final class StaticCallExpressionNode extends AbstractNode implements ExpressionNode
+final readonly class StaticCallExpressionNode extends AbstractNode implements ExpressionNode
 {
     private QualifiedNameNode|ExpressionNode $classReference;
     private IdentifierNode|ExpressionNode $method;
@@ -26,14 +24,21 @@ final class StaticCallExpressionNode extends AbstractNode implements ExpressionN
         Identifier|ExpressionNode $method,
         private readonly array $arguments
     ) {
-        parent::__construct(NodeKind::STATIC_CALL_EXPRESSION);
+        parent::__construct();
 
         $this->classReference = $classReference instanceof QualifiedName
-            ? new QualifiedNameNode($classReference, $this)
+            ? new QualifiedNameNode($classReference)
             : $classReference;
         $this->method = $method instanceof Identifier
-            ? new IdentifierNode($method, $this)
+            ? new IdentifierNode($method)
             : $method;
+
+        $this->children()->add($this->classReference);
+        $this->children()->add($this->method);
+
+        foreach ($this->arguments as $argument) {
+            $this->children()->add($argument);
+        }
     }
 
     public function classReference(): QualifiedNameNode|ExpressionNode
@@ -52,21 +57,5 @@ final class StaticCallExpressionNode extends AbstractNode implements ExpressionN
     public function arguments(): array
     {
         return $this->arguments;
-    }
-
-    /**
-     * @return list<Node>
-     */
-    public function children(): array
-    {
-        $children = [];
-
-        $children[] = $this->classReference;
-        $children[] = $this->method;
-
-        return [
-            ...$children,
-            ...$this->arguments,
-        ];
     }
 }

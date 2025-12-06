@@ -10,7 +10,7 @@ use TimLappe\Elephactor\Domain\Php\AST\Model\Node;
 use TimLappe\Elephactor\Domain\Php\AST\Model\NodeKind;
 use TimLappe\Elephactor\Domain\Php\AST\Model\Value\Identifier;
 
-final class ClosureUseVariableNode extends AbstractNode
+final readonly class ClosureUseVariableNode extends AbstractNode
 {
     private IdentifierNode $name;
 
@@ -18,7 +18,7 @@ final class ClosureUseVariableNode extends AbstractNode
         Identifier $name,
         private readonly bool $byReference = false
     ) {
-        parent::__construct(NodeKind::CLOSURE_USE_VARIABLE);
+        parent::__construct();
 
         $this->name = new IdentifierNode($name, $this);
     }

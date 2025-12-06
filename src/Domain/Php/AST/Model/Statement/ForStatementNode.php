@@ -6,12 +6,13 @@ namespace TimLappe\Elephactor\Domain\Php\AST\Model\Statement;
 
 use TimLappe\Elephactor\Domain\Php\AST\Model\AbstractNode;
 use TimLappe\Elephactor\Domain\Php\AST\Model\ExpressionNode;
-use TimLappe\Elephactor\Domain\Php\AST\Model\Node;
-use TimLappe\Elephactor\Domain\Php\AST\Model\NodeKind;
 use TimLappe\Elephactor\Domain\Php\AST\Model\StatementNode;
 
-final class ForStatementNode extends AbstractNode implements StatementNode
+final readonly class ForStatementNode extends AbstractNode implements StatementNode
 {
+    private int $initializersCount;
+    private int $conditionsCount;
+    private int $loopExpressionsCount;
     /**
      * @param list<ExpressionNode> $initializers
      * @param list<ExpressionNode> $conditions
@@ -19,12 +20,32 @@ final class ForStatementNode extends AbstractNode implements StatementNode
      * @param list<StatementNode>  $statements
      */
     public function __construct(
-        private readonly array $initializers,
-        private readonly array $conditions,
-        private readonly array $loopExpressions,
-        private readonly array $statements
+        array $initializers,
+        array $conditions,
+        array $loopExpressions,
+        array $statements
     ) {
-        parent::__construct(NodeKind::FOR_STATEMENT);
+        parent::__construct();
+
+        $this->initializersCount = count($initializers);
+        $this->conditionsCount = count($conditions);
+        $this->loopExpressionsCount = count($loopExpressions);
+
+        foreach ($initializers as $initializer) {
+            $this->children()->add($initializer);
+        }
+
+        foreach ($conditions as $condition) {
+            $this->children()->add($condition);
+        }
+
+        foreach ($loopExpressions as $loopExpression) {
+            $this->children()->add($loopExpression);
+        }
+
+        foreach ($statements as $statement) {
+            $this->children()->add($statement);
+        }
     }
 
     /**
@@ -32,7 +53,11 @@ final class ForStatementNode extends AbstractNode implements StatementNode
      */
     public function initializers(): array
     {
-        return $this->initializers;
+        return array_slice(
+            $this->children()->toArray(),
+            0,
+            $this->initializersCount,
+        );
     }
 
     /**
@@ -40,7 +65,11 @@ final class ForStatementNode extends AbstractNode implements StatementNode
      */
     public function conditions(): array
     {
-        return $this->conditions;
+        return array_slice(
+            $this->children()->toArray(),
+            $this->initializersCount,
+            $this->conditionsCount,
+        );
     }
 
     /**
@@ -48,7 +77,11 @@ final class ForStatementNode extends AbstractNode implements StatementNode
      */
     public function loopExpressions(): array
     {
-        return $this->loopExpressions;
+        return array_slice(
+            $this->children()->toArray(),
+            $this->initializersCount + $this->conditionsCount,
+            $this->loopExpressionsCount,
+        );
     }
 
     /**
@@ -56,19 +89,9 @@ final class ForStatementNode extends AbstractNode implements StatementNode
      */
     public function statements(): array
     {
-        return $this->statements;
-    }
-
-    /**
-     * @return list<Node>
-     */
-    public function children(): array
-    {
-        return [
-            ...$this->initializers,
-            ...$this->conditions,
-            ...$this->loopExpressions,
-            ...$this->statements,
-        ];
+        return array_slice(
+            $this->children()->toArray(),
+            $this->initializersCount + $this->conditionsCount + $this->loopExpressionsCount,
+        );
     }
 }

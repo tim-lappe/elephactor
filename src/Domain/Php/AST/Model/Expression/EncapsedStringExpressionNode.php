@@ -10,7 +10,7 @@ use TimLappe\Elephactor\Domain\Php\AST\Model\Node;
 use TimLappe\Elephactor\Domain\Php\AST\Model\NodeKind;
 use TimLappe\Elephactor\Domain\Php\AST\Model\Value\EncapsedStringKind;
 
-final class EncapsedStringExpressionNode extends AbstractNode implements ExpressionNode
+final readonly class EncapsedStringExpressionNode extends AbstractNode implements ExpressionNode
 {
     /**
      * @param list<EncapsedStringPartNode> $parts
@@ -19,7 +19,7 @@ final class EncapsedStringExpressionNode extends AbstractNode implements Express
         private readonly EncapsedStringKind $stringKind,
         private readonly array $parts
     ) {
-        parent::__construct(NodeKind::ENCAPSED_STRING_EXPRESSION);
+        parent::__construct();
     }
 
     public function stringKind(): EncapsedStringKind

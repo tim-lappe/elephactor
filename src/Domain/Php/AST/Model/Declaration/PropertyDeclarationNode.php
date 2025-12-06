@@ -7,13 +7,11 @@ namespace TimLappe\Elephactor\Domain\Php\AST\Model\Declaration;
 use TimLappe\Elephactor\Domain\Php\AST\Model\AbstractNode;
 use TimLappe\Elephactor\Domain\Php\AST\Model\Attribute\AttributeGroupNode;
 use TimLappe\Elephactor\Domain\Php\AST\Model\MemberNode;
-use TimLappe\Elephactor\Domain\Php\AST\Model\Node;
-use TimLappe\Elephactor\Domain\Php\AST\Model\NodeKind;
 use TimLappe\Elephactor\Domain\Php\AST\Model\TypeNode;
 use TimLappe\Elephactor\Domain\Php\AST\Model\Value\DocBlock;
 use TimLappe\Elephactor\Domain\Php\AST\Model\Value\PropertyModifiers;
 
-final class PropertyDeclarationNode extends AbstractNode implements MemberNode
+final readonly class PropertyDeclarationNode extends AbstractNode implements MemberNode
 {
     /**
      * @param list<PropertyNode>       $properties
@@ -21,16 +19,28 @@ final class PropertyDeclarationNode extends AbstractNode implements MemberNode
      */
     public function __construct(
         private readonly PropertyModifiers $modifiers,
-        private readonly array $properties,
-        private readonly array $attributes = [],
-        private readonly ?TypeNode $type = null,
+        array $properties,
+        array $attributes,
+        ?TypeNode $type = null,
         private readonly ?DocBlock $docBlock = null
     ) {
         if ($properties === []) {
             throw new \InvalidArgumentException('Property declaration requires at least one property');
         }
 
-        parent::__construct(NodeKind::PROPERTY_DECLARATION);
+        parent::__construct();
+
+        foreach ($attributes as $attribute) {
+            $this->children()->add("attribute", $attribute);
+        }
+
+        foreach ($properties as $property) {
+            $this->children()->add("property", $property);
+        }
+
+        if ($type !== null) {
+            $this->children()->add("type", $type);
+        }
     }
 
     public function modifiers(): PropertyModifiers
@@ -43,7 +53,7 @@ final class PropertyDeclarationNode extends AbstractNode implements MemberNode
      */
     public function properties(): array
     {
-        return $this->properties;
+        return $this->children()->getAllOf("property", PropertyNode::class);
     }
 
     /**
@@ -51,33 +61,16 @@ final class PropertyDeclarationNode extends AbstractNode implements MemberNode
      */
     public function attributes(): array
     {
-        return $this->attributes;
+        return $this->children()->getAllOf("attribute", AttributeGroupNode::class);
     }
 
     public function type(): ?TypeNode
     {
-        return $this->type;
+        return $this->children()->getOne("type", TypeNode::class);
     }
 
     public function docBlock(): ?DocBlock
     {
         return $this->docBlock;
-    }
-
-    /**
-     * @return list<Node>
-     */
-    public function children(): array
-    {
-        $children = [
-            ...$this->attributes,
-            ...$this->properties,
-        ];
-
-        if ($this->type !== null) {
-            $children[] = $this->type;
-        }
-
-        return $children;
     }
 }

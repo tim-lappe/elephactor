@@ -7,35 +7,28 @@ namespace TimLappe\Elephactor\Domain\Php\AST\Model\Declaration;
 use TimLappe\Elephactor\Domain\Php\AST\Model\AbstractNode;
 use TimLappe\Elephactor\Domain\Php\AST\Model\MemberNode;
 use TimLappe\Elephactor\Domain\Php\AST\Model\Name\QualifiedNameNode;
-use TimLappe\Elephactor\Domain\Php\AST\Model\Node;
-use TimLappe\Elephactor\Domain\Php\AST\Model\NodeKind;
 use TimLappe\Elephactor\Domain\Php\AST\Model\UseTrait\TraitAdaptationNode;
 use TimLappe\Elephactor\Domain\Php\AST\Model\Value\QualifiedName;
 
-final class TraitUseNode extends AbstractNode implements MemberNode
+final readonly class TraitUseNode extends AbstractNode implements MemberNode
 {
     /**
-     * @var list<QualifiedNameNode>
-     */
-    private readonly array $traits;
-    /**
-     * @param list<QualifiedName>       $traits
+     * @param list<QualifiedName> $traits
      * @param list<TraitAdaptationNode> $adaptations
      */
     public function __construct(
         array $traits,
-        private readonly array $adaptations = []
+        array $adaptations = []
     ) {
-        if ($traits === []) {
-            throw new \InvalidArgumentException('Trait use requires at least one trait');
+        parent::__construct();
+
+        foreach ($traits as $trait) {
+            $this->children()->add("trait", new QualifiedNameNode($trait));
         }
 
-        parent::__construct(NodeKind::TRAIT_USE);
-
-        $this->traits = array_map(
-            fn (QualifiedName $trait): QualifiedNameNode => new QualifiedNameNode($trait, $this),
-            $traits,
-        );
+        foreach ($adaptations as $adaptation) {
+            $this->children()->add("adaptation", $adaptation);
+        }
     }
 
     /**
@@ -43,7 +36,7 @@ final class TraitUseNode extends AbstractNode implements MemberNode
      */
     public function traits(): array
     {
-        return $this->traits;
+        return $this->children()->getAllOf("trait", QualifiedNameNode::class);
     }
 
     /**
@@ -51,17 +44,6 @@ final class TraitUseNode extends AbstractNode implements MemberNode
      */
     public function adaptations(): array
     {
-        return $this->adaptations;
-    }
-
-    /**
-     * @return list<Node>
-     */
-    public function children(): array
-    {
-        return [
-            ...$this->traits,
-            ...$this->adaptations,
-        ];
+        return $this->children()->getAllOf("adaptation", TraitAdaptationNode::class);
     }
 }

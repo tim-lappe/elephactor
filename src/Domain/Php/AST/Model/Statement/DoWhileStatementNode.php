@@ -10,7 +10,7 @@ use TimLappe\Elephactor\Domain\Php\AST\Model\Node;
 use TimLappe\Elephactor\Domain\Php\AST\Model\NodeKind;
 use TimLappe\Elephactor\Domain\Php\AST\Model\StatementNode;
 
-final class DoWhileStatementNode extends AbstractNode implements StatementNode
+final readonly class DoWhileStatementNode extends AbstractNode implements StatementNode
 {
     /**
      * @param list<StatementNode> $statements
@@ -19,7 +19,7 @@ final class DoWhileStatementNode extends AbstractNode implements StatementNode
         private readonly ExpressionNode $condition,
         private readonly array $statements
     ) {
-        parent::__construct(NodeKind::DO_WHILE_STATEMENT);
+        parent::__construct();
     }
 
     public function condition(): ExpressionNode

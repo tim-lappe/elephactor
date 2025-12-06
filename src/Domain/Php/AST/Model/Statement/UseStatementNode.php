@@ -12,7 +12,7 @@ use TimLappe\Elephactor\Domain\Php\AST\Model\StatementNode;
 use TimLappe\Elephactor\Domain\Php\AST\Model\Value\Identifier;
 use TimLappe\Elephactor\Domain\Php\AST\Model\Value\QualifiedName;
 
-final class UseStatementNode extends AbstractNode implements StatementNode
+final readonly class UseStatementNode extends AbstractNode implements StatementNode
 {
     private ?QualifiedNameNode $groupPrefix;
     /**
@@ -27,7 +27,7 @@ final class UseStatementNode extends AbstractNode implements StatementNode
             throw new \InvalidArgumentException('Use statement must contain at least one clause');
         }
 
-        parent::__construct(NodeKind::USE_STATEMENT);
+        parent::__construct();
 
         $this->groupPrefix = $groupPrefix !== null ? new QualifiedNameNode($groupPrefix, $this) : null;
     }

@@ -12,7 +12,7 @@ use TimLappe\Elephactor\Domain\Php\AST\Model\NodeKind;
 use TimLappe\Elephactor\Domain\Php\AST\Model\Value\Identifier;
 use TimLappe\Elephactor\Domain\Php\AST\Model\Value\QualifiedName;
 
-final class UseClauseNode extends AbstractNode
+final readonly class UseClauseNode extends AbstractNode
 {
     private QualifiedNameNode $name;
     private readonly ?IdentifierNode $alias;
@@ -21,7 +21,7 @@ final class UseClauseNode extends AbstractNode
         QualifiedName $name,
         ?Identifier $alias = null
     ) {
-        parent::__construct(NodeKind::USE_CLAUSE);
+        parent::__construct();
 
         $this->name = new QualifiedNameNode($name, $this);
         $this->alias = $alias !== null ? new IdentifierNode($alias, $this) : null;

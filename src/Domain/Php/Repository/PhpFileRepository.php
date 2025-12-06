@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace TimLappe\Elephactor\Domain\Php\Repository;
 
 use TimLappe\Elephactor\Adapter\Php\Ast\AstBuilder;
-use TimLappe\Elephactor\Domain\Php\Analysis\Analyser\FileAnalyser;
 use TimLappe\Elephactor\Domain\Php\Model\FileModel\PhpFile;
 use TimLappe\Elephactor\Domain\Workspace\Model\Filesystem\File;
 
@@ -16,7 +15,6 @@ final class PhpFileRepository
      */
     public function __construct(
         private readonly AstBuilder $astBuilder,
-        private readonly FileAnalyser $fileAnalyser,
         private array $items = []
     ) {
     }
@@ -30,8 +28,7 @@ final class PhpFileRepository
         }
 
         $fileNode = $this->astBuilder->build($file->content());
-        $semanticFileNode = $this->fileAnalyser->analyse($fileNode);
-        $phpFile = new PhpFile($file, $semanticFileNode);
+        $phpFile = new PhpFile($file, $fileNode);
 
         $this->add($phpFile);
 

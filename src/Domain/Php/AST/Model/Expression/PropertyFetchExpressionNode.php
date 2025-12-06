@@ -7,11 +7,9 @@ namespace TimLappe\Elephactor\Domain\Php\AST\Model\Expression;
 use TimLappe\Elephactor\Domain\Php\AST\Model\AbstractNode;
 use TimLappe\Elephactor\Domain\Php\AST\Model\ExpressionNode;
 use TimLappe\Elephactor\Domain\Php\AST\Model\Name\IdentifierNode;
-use TimLappe\Elephactor\Domain\Php\AST\Model\Node;
-use TimLappe\Elephactor\Domain\Php\AST\Model\NodeKind;
 use TimLappe\Elephactor\Domain\Php\AST\Model\Value\Identifier;
 
-final class PropertyFetchExpressionNode extends AbstractNode implements ExpressionNode
+final readonly class PropertyFetchExpressionNode extends AbstractNode implements ExpressionNode
 {
     private IdentifierNode|ExpressionNode $property;
 
@@ -20,9 +18,12 @@ final class PropertyFetchExpressionNode extends AbstractNode implements Expressi
         Identifier|ExpressionNode $property,
         private readonly bool $nullsafe = false
     ) {
-        parent::__construct(NodeKind::PROPERTY_FETCH_EXPRESSION);
+        parent::__construct();
 
-        $this->property = $property instanceof Identifier ? new IdentifierNode($property, $this) : $property;
+        $this->property = $property instanceof Identifier ? new IdentifierNode($property) : $property;
+
+        $this->children()->add($this->object);
+        $this->children()->add($this->property);
     }
 
     public function object(): ExpressionNode
@@ -38,17 +39,5 @@ final class PropertyFetchExpressionNode extends AbstractNode implements Expressi
     public function isNullsafe(): bool
     {
         return $this->nullsafe;
-    }
-
-    /**
-     * @return list<Node>
-     */
-    public function children(): array
-    {
-        $children = [$this->object];
-
-        $children[] = $this->property;
-
-        return $children;
     }
 }

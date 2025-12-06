@@ -8,12 +8,10 @@ use TimLappe\Elephactor\Domain\Php\AST\Model\AbstractNode;
 use TimLappe\Elephactor\Domain\Php\AST\Model\ExpressionNode;
 use TimLappe\Elephactor\Domain\Php\AST\Model\Name\IdentifierNode;
 use TimLappe\Elephactor\Domain\Php\AST\Model\Name\QualifiedNameNode;
-use TimLappe\Elephactor\Domain\Php\AST\Model\Node;
-use TimLappe\Elephactor\Domain\Php\AST\Model\NodeKind;
 use TimLappe\Elephactor\Domain\Php\AST\Model\Value\Identifier;
 use TimLappe\Elephactor\Domain\Php\AST\Model\Value\QualifiedName;
 
-final class ClassConstantFetchExpressionNode extends AbstractNode implements ExpressionNode
+final readonly class ClassConstantFetchExpressionNode extends AbstractNode implements ExpressionNode
 {
     private QualifiedNameNode|ExpressionNode $classReference;
     private IdentifierNode $constant;
@@ -22,12 +20,15 @@ final class ClassConstantFetchExpressionNode extends AbstractNode implements Exp
         QualifiedName|ExpressionNode $classReference,
         Identifier $constant
     ) {
-        parent::__construct(NodeKind::CLASS_CONSTANT_FETCH_EXPRESSION);
+        parent::__construct();
 
         $this->classReference = $classReference instanceof QualifiedName
-            ? new QualifiedNameNode($classReference, $this)
+            ? new QualifiedNameNode($classReference)
             : $classReference;
-        $this->constant = new IdentifierNode($constant, $this);
+        $this->constant = new IdentifierNode($constant);
+
+        $this->children()->add($this->constant);
+        $this->children()->add($this->classReference);
     }
 
     public function classReference(): QualifiedNameNode|ExpressionNode
@@ -38,16 +39,5 @@ final class ClassConstantFetchExpressionNode extends AbstractNode implements Exp
     public function constant(): IdentifierNode
     {
         return $this->constant;
-    }
-
-    /**
-     * @return list<Node>
-     */
-    public function children(): array
-    {
-        $children = [$this->constant];
-        $children[] = $this->classReference;
-
-        return $children;
     }
 }

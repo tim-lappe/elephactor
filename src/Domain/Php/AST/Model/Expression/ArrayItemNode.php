@@ -9,7 +9,7 @@ use TimLappe\Elephactor\Domain\Php\AST\Model\ExpressionNode;
 use TimLappe\Elephactor\Domain\Php\AST\Model\Node;
 use TimLappe\Elephactor\Domain\Php\AST\Model\NodeKind;
 
-final class ArrayItemNode extends AbstractNode
+final readonly class ArrayItemNode extends AbstractNode
 {
     public function __construct(
         private readonly ExpressionNode $value,
@@ -17,7 +17,7 @@ final class ArrayItemNode extends AbstractNode
         private readonly bool $byReference = false,
         private readonly bool $unpack = false
     ) {
-        parent::__construct(NodeKind::ARRAY_ITEM);
+        parent::__construct();
     }
 
     public function value(): ExpressionNode

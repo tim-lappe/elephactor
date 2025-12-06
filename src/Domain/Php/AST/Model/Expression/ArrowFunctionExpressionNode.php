@@ -12,7 +12,7 @@ use TimLappe\Elephactor\Domain\Php\AST\Model\Node;
 use TimLappe\Elephactor\Domain\Php\AST\Model\NodeKind;
 use TimLappe\Elephactor\Domain\Php\AST\Model\TypeNode;
 
-final class ArrowFunctionExpressionNode extends AbstractNode implements ExpressionNode
+final readonly class ArrowFunctionExpressionNode extends AbstractNode implements ExpressionNode
 {
     /**
      * @param list<AttributeGroupNode> $attributes
@@ -26,7 +26,7 @@ final class ArrowFunctionExpressionNode extends AbstractNode implements Expressi
         private readonly bool $static = false,
         private readonly bool $returnsByReference = false
     ) {
-        parent::__construct(NodeKind::ARROW_FUNCTION_EXPRESSION);
+        parent::__construct();
     }
 
     /**

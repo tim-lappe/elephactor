@@ -6,28 +6,20 @@ namespace TimLappe\Elephactor\Domain\Php\AST\Model\Statement;
 
 use TimLappe\Elephactor\Domain\Php\AST\Model\AbstractNode;
 use TimLappe\Elephactor\Domain\Php\AST\Model\ExpressionNode;
-use TimLappe\Elephactor\Domain\Php\AST\Model\Node;
-use TimLappe\Elephactor\Domain\Php\AST\Model\NodeKind;
 use TimLappe\Elephactor\Domain\Php\AST\Model\StatementNode;
 
-final class ThrowStatementNode extends AbstractNode implements StatementNode
+final readonly class ThrowStatementNode extends AbstractNode implements StatementNode
 {
     public function __construct(
-        private readonly ExpressionNode $expression
+        ExpressionNode $expression
     ) {
-        parent::__construct(NodeKind::THROW_STATEMENT);
+        parent::__construct();
+
+        $this->children()->add($expression);
     }
 
     public function expression(): ExpressionNode
     {
-        return $this->expression;
-    }
-
-    /**
-     * @return list<Node>
-     */
-    public function children(): array
-    {
-        return [$this->expression];
+        return $this->children()->firstOfType(ExpressionNode::class) ?? throw new \RuntimeException('Throw expression missing');
     }
 }

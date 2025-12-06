@@ -15,6 +15,7 @@ use TimLappe\Elephactor\Domain\Workspace\Model\Workspace;
 use TimLappe\Elephactor\Domain\Php\Model\ClassLike\PhpClassLike;
 use TimLappe\Elephactor\Domain\Php\Analysis\Transformation\SemanticNodeTransformationExecutor;
 use TimLappe\Elephactor\Domain\Php\Analysis\Transformation\Refactorer\RefactoringStack;
+use TimLappe\Elephactor\Domain\Php\AST\Analysis\FqnResolver;
 
 final class ClassRenameExecutor implements RefactoringExecutor
 {
@@ -36,7 +37,13 @@ final class ClassRenameExecutor implements RefactoringExecutor
         }
 
         $phpFiles = $this->workspace->phpFileIndex()->find()->toArray();
-        $oldFullyQualifiedName = $command->phpClass()->classLikeDeclaration()->name()->fullyQualifiedName();
+
+        $fqnResolver = new FqnResolver($command->phpClass()->file()->fileNode(), $command->phpClass()->classLikeNode()->name()->identifier());
+        $oldFullyQualifiedName = $fqnResolver->fullyQualifiedName();
+        if ($oldFullyQualifiedName === null) {
+            throw new \RuntimeException('Could not resolve fully qualified name for class ' . $command->phpClass()->classLikeNode()->name()->identifier()->value());
+        }
+
         $newFullyQualifiedName = $oldFullyQualifiedName->changeLastPart($command->newName());
 
         $refactoringStack = new RefactoringStack();

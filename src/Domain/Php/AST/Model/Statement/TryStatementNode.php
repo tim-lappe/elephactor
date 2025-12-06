@@ -5,22 +5,39 @@ declare(strict_types=1);
 namespace TimLappe\Elephactor\Domain\Php\AST\Model\Statement;
 
 use TimLappe\Elephactor\Domain\Php\AST\Model\AbstractNode;
-use TimLappe\Elephactor\Domain\Php\AST\Model\Node;
-use TimLappe\Elephactor\Domain\Php\AST\Model\NodeKind;
 use TimLappe\Elephactor\Domain\Php\AST\Model\StatementNode;
 
-final class TryStatementNode extends AbstractNode implements StatementNode
+final readonly class TryStatementNode extends AbstractNode implements StatementNode
 {
+    private int $tryStatementsCount;
+    private int $catchClausesCount;
+    private bool $hasFinallyClause;
     /**
      * @param list<StatementNode>   $tryStatements
      * @param list<CatchClauseNode> $catchClauses
      */
     public function __construct(
-        private readonly array $tryStatements,
-        private readonly array $catchClauses = [],
-        private readonly ?FinallyClauseNode $finallyClause = null
+        array $tryStatements,
+        array $catchClauses = [],
+        ?FinallyClauseNode $finallyClause = null
     ) {
-        parent::__construct(NodeKind::TRY_STATEMENT);
+        parent::__construct();
+
+        $this->tryStatementsCount = count($tryStatements);
+        $this->catchClausesCount = count($catchClauses);
+        $this->hasFinallyClause = $finallyClause !== null;
+
+        foreach ($tryStatements as $tryStatement) {
+            $this->children()->add($tryStatement);
+        }
+
+        foreach ($catchClauses as $catchClause) {
+            $this->children()->add($catchClause);
+        }
+
+        if ($finallyClause !== null) {
+            $this->children()->add($finallyClause);
+        }
     }
 
     /**
@@ -28,7 +45,11 @@ final class TryStatementNode extends AbstractNode implements StatementNode
      */
     public function tryStatements(): array
     {
-        return $this->tryStatements;
+        return array_slice(
+            $this->children()->toArray(),
+            0,
+            $this->tryStatementsCount,
+        );
     }
 
     /**
@@ -36,28 +57,21 @@ final class TryStatementNode extends AbstractNode implements StatementNode
      */
     public function catchClauses(): array
     {
-        return $this->catchClauses;
+        return array_slice(
+            $this->children()->toArray(),
+            $this->tryStatementsCount,
+            $this->catchClausesCount,
+        );
     }
 
     public function finallyClause(): ?FinallyClauseNode
     {
-        return $this->finallyClause;
-    }
-
-    /**
-     * @return list<Node>
-     */
-    public function children(): array
-    {
-        $children = [
-            ...$this->tryStatements,
-            ...$this->catchClauses,
-        ];
-
-        if ($this->finallyClause !== null) {
-            $children[] = $this->finallyClause;
+        if (!$this->hasFinallyClause) {
+            return null;
         }
 
-        return $children;
+        $index = $this->tryStatementsCount + $this->catchClausesCount;
+
+        return $this->children()->toArray()[$index] ?? null;
     }
 }

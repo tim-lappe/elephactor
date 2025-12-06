@@ -9,13 +9,13 @@ use TimLappe\Elephactor\Domain\Php\AST\Model\ExpressionNode;
 use TimLappe\Elephactor\Domain\Php\AST\Model\Node;
 use TimLappe\Elephactor\Domain\Php\AST\Model\NodeKind;
 
-final class ListItemNode extends AbstractNode
+final readonly class ListItemNode extends AbstractNode
 {
     public function __construct(
         private readonly ?ExpressionNode $key,
         private readonly ExpressionNode $value
     ) {
-        parent::__construct(NodeKind::LIST_ITEM);
+        parent::__construct();
     }
 
     public function key(): ?ExpressionNode

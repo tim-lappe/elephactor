@@ -10,13 +10,13 @@ use TimLappe\Elephactor\Domain\Php\AST\Model\Node;
 use TimLappe\Elephactor\Domain\Php\AST\Model\NodeKind;
 use TimLappe\Elephactor\Domain\Php\AST\Model\Value\IncludeKind;
 
-final class IncludeExpressionNode extends AbstractNode implements ExpressionNode
+final readonly class IncludeExpressionNode extends AbstractNode implements ExpressionNode
 {
     public function __construct(
         private readonly IncludeKind $includeKind,
         private readonly ExpressionNode $path
     ) {
-        parent::__construct(NodeKind::INCLUDE_EXPRESSION);
+        parent::__construct();
     }
 
     public function includeKind(): IncludeKind

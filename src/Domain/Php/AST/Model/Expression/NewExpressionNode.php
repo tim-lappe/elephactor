@@ -8,11 +8,9 @@ use TimLappe\Elephactor\Domain\Php\AST\Model\AbstractNode;
 use TimLappe\Elephactor\Domain\Php\AST\Model\Argument\ArgumentNode;
 use TimLappe\Elephactor\Domain\Php\AST\Model\Name\QualifiedNameNode;
 use TimLappe\Elephactor\Domain\Php\AST\Model\ExpressionNode;
-use TimLappe\Elephactor\Domain\Php\AST\Model\Node;
-use TimLappe\Elephactor\Domain\Php\AST\Model\NodeKind;
 use TimLappe\Elephactor\Domain\Php\AST\Model\Value\QualifiedName;
 
-final class NewExpressionNode extends AbstractNode implements ExpressionNode
+final readonly class NewExpressionNode extends AbstractNode implements ExpressionNode
 {
     private QualifiedNameNode|ExpressionNode $classReference;
     /**
@@ -22,11 +20,17 @@ final class NewExpressionNode extends AbstractNode implements ExpressionNode
         QualifiedName|ExpressionNode $classReference,
         private readonly array $arguments
     ) {
-        parent::__construct(NodeKind::NEW_EXPRESSION);
+        parent::__construct();
 
         $this->classReference = $classReference instanceof QualifiedName
-            ? new QualifiedNameNode($classReference, $this)
+            ? new QualifiedNameNode($classReference)
             : $classReference;
+
+        $this->children()->add($this->classReference);
+
+        foreach ($this->arguments as $argument) {
+            $this->children()->add($argument);
+        }
     }
 
     public function classReference(): QualifiedNameNode|ExpressionNode
@@ -40,17 +44,5 @@ final class NewExpressionNode extends AbstractNode implements ExpressionNode
     public function arguments(): array
     {
         return $this->arguments;
-    }
-
-    /**
-     * @return list<Node>
-     */
-    public function children(): array
-    {
-        $children = $this->arguments;
-
-        array_unshift($children, $this->classReference);
-
-        return $children;
     }
 }

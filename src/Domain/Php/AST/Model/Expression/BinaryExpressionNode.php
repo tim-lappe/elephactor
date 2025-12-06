@@ -10,14 +10,14 @@ use TimLappe\Elephactor\Domain\Php\AST\Model\Node;
 use TimLappe\Elephactor\Domain\Php\AST\Model\NodeKind;
 use TimLappe\Elephactor\Domain\Php\AST\Model\Value\BinaryOperator;
 
-final class BinaryExpressionNode extends AbstractNode implements ExpressionNode
+final readonly class BinaryExpressionNode extends AbstractNode implements ExpressionNode
 {
     public function __construct(
         private readonly BinaryOperator $operator,
         private readonly ExpressionNode $left,
         private readonly ExpressionNode $right
     ) {
-        parent::__construct(NodeKind::BINARY_EXPRESSION);
+        parent::__construct();
     }
 
     public function operator(): BinaryOperator

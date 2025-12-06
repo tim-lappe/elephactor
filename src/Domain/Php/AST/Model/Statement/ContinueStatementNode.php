@@ -6,28 +6,22 @@ namespace TimLappe\Elephactor\Domain\Php\AST\Model\Statement;
 
 use TimLappe\Elephactor\Domain\Php\AST\Model\AbstractNode;
 use TimLappe\Elephactor\Domain\Php\AST\Model\ExpressionNode;
-use TimLappe\Elephactor\Domain\Php\AST\Model\Node;
-use TimLappe\Elephactor\Domain\Php\AST\Model\NodeKind;
 use TimLappe\Elephactor\Domain\Php\AST\Model\StatementNode;
 
-final class ContinueStatementNode extends AbstractNode implements StatementNode
+final readonly class ContinueStatementNode extends AbstractNode implements StatementNode
 {
     public function __construct(
-        private readonly ?ExpressionNode $levels = null
+        ?ExpressionNode $levels = null
     ) {
-        parent::__construct(NodeKind::CONTINUE_STATEMENT);
+        parent::__construct();
+
+        if ($levels !== null) {
+            $this->children()->add($levels);
+        }
     }
 
     public function levels(): ?ExpressionNode
     {
-        return $this->levels;
-    }
-
-    /**
-     * @return list<Node>
-     */
-    public function children(): array
-    {
-        return $this->levels !== null ? [$this->levels] : [];
+        return $this->children()->firstOfType(ExpressionNode::class);
     }
 }

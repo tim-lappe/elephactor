@@ -4,12 +4,12 @@ declare(strict_types=1);
 
 namespace TimLappe\Elephactor\Domain\Php\AST\Model;
 
+use TimLappe\Elephactor\Domain\Php\AST\Visitor\NodeVisitor;
+
 interface Node
 {
-    public function kind(): NodeKind;
-
     /**
-     * @return list<Node>
+     * @return NodeCollection
      */
-    public function children(): array;
+    public function children(): NodeCollection;
 }

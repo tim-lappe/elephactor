@@ -6,25 +6,32 @@ namespace TimLappe\Elephactor\Domain\Php\AST\Model\Statement;
 
 use TimLappe\Elephactor\Domain\Php\AST\Model\AbstractNode;
 use TimLappe\Elephactor\Domain\Php\AST\Model\ExpressionNode;
-use TimLappe\Elephactor\Domain\Php\AST\Model\Node;
-use TimLappe\Elephactor\Domain\Php\AST\Model\NodeKind;
 use TimLappe\Elephactor\Domain\Php\AST\Model\StatementNode;
 
-final class SwitchStatementNode extends AbstractNode implements StatementNode
+final readonly class SwitchStatementNode extends AbstractNode implements StatementNode
 {
+    private int $casesCount;
     /**
      * @param list<SwitchCaseNode> $cases
      */
     public function __construct(
-        private readonly ExpressionNode $expression,
-        private readonly array $cases
+        ExpressionNode $expression,
+        array $cases
     ) {
-        parent::__construct(NodeKind::SWITCH_STATEMENT);
+        parent::__construct();
+
+        $this->casesCount = count($cases);
+
+        $this->children()->add($expression);
+
+        foreach ($cases as $case) {
+            $this->children()->add($case);
+        }
     }
 
     public function expression(): ExpressionNode
     {
-        return $this->expression;
+        return $this->children()->toArray()[0] ?? throw new \RuntimeException('Switch expression missing');
     }
 
     /**
@@ -32,17 +39,10 @@ final class SwitchStatementNode extends AbstractNode implements StatementNode
      */
     public function cases(): array
     {
-        return $this->cases;
-    }
-
-    /**
-     * @return list<Node>
-     */
-    public function children(): array
-    {
-        return [
-            $this->expression,
-            ...$this->cases,
-        ];
+        return array_slice(
+            $this->children()->toArray(),
+            1,
+            $this->casesCount,
+        );
     }
 }

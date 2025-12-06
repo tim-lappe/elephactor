@@ -9,7 +9,7 @@ use TimLappe\Elephactor\Domain\Php\AST\Model\ExpressionNode;
 use TimLappe\Elephactor\Domain\Php\AST\Model\Node;
 use TimLappe\Elephactor\Domain\Php\AST\Model\NodeKind;
 
-final class MatchArmNode extends AbstractNode
+final readonly class MatchArmNode extends AbstractNode
 {
     /**
      * @param list<ExpressionNode> $conditions
@@ -18,7 +18,7 @@ final class MatchArmNode extends AbstractNode
         private readonly array $conditions,
         private readonly ExpressionNode $body
     ) {
-        parent::__construct(NodeKind::MATCH_ARM);
+        parent::__construct();
     }
 
     /**

@@ -10,13 +10,13 @@ use TimLappe\Elephactor\Domain\Php\AST\Model\Node;
 use TimLappe\Elephactor\Domain\Php\AST\Model\NodeKind;
 use TimLappe\Elephactor\Domain\Php\AST\Model\Value\UnaryOperator;
 
-final class UnaryExpressionNode extends AbstractNode implements ExpressionNode
+final readonly class UnaryExpressionNode extends AbstractNode implements ExpressionNode
 {
     public function __construct(
         private readonly UnaryOperator $operator,
         private readonly ExpressionNode $operand
     ) {
-        parent::__construct(NodeKind::UNARY_EXPRESSION);
+        parent::__construct();
     }
 
     public function operator(): UnaryOperator

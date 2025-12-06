@@ -8,12 +8,10 @@ use TimLappe\Elephactor\Domain\Php\AST\Model\AbstractNode;
 use TimLappe\Elephactor\Domain\Php\AST\Model\ExpressionNode;
 use TimLappe\Elephactor\Domain\Php\AST\Model\Name\IdentifierNode;
 use TimLappe\Elephactor\Domain\Php\AST\Model\Name\QualifiedNameNode;
-use TimLappe\Elephactor\Domain\Php\AST\Model\Node;
-use TimLappe\Elephactor\Domain\Php\AST\Model\NodeKind;
 use TimLappe\Elephactor\Domain\Php\AST\Model\Value\Identifier;
 use TimLappe\Elephactor\Domain\Php\AST\Model\Value\QualifiedName;
 
-final class StaticPropertyFetchExpressionNode extends AbstractNode implements ExpressionNode
+final readonly class StaticPropertyFetchExpressionNode extends AbstractNode implements ExpressionNode
 {
     private QualifiedNameNode|ExpressionNode $classReference;
     private IdentifierNode|ExpressionNode $property;
@@ -22,14 +20,17 @@ final class StaticPropertyFetchExpressionNode extends AbstractNode implements Ex
         QualifiedName|ExpressionNode $classReference,
         Identifier|ExpressionNode $property
     ) {
-        parent::__construct(NodeKind::STATIC_PROPERTY_FETCH_EXPRESSION);
+        parent::__construct();
 
         $this->classReference = $classReference instanceof QualifiedName
-            ? new QualifiedNameNode($classReference, $this)
+            ? new QualifiedNameNode($classReference)
             : $classReference;
         $this->property = $property instanceof Identifier
-            ? new IdentifierNode($property, $this)
+            ? new IdentifierNode($property)
             : $property;
+
+        $this->children()->add($this->classReference);
+        $this->children()->add($this->property);
     }
 
     public function classReference(): QualifiedNameNode|ExpressionNode
@@ -40,16 +41,5 @@ final class StaticPropertyFetchExpressionNode extends AbstractNode implements Ex
     public function property(): IdentifierNode|ExpressionNode
     {
         return $this->property;
-    }
-
-    /**
-     * @return list<Node>
-     */
-    public function children(): array
-    {
-        return [
-            $this->classReference,
-            $this->property,
-        ];
     }
 }

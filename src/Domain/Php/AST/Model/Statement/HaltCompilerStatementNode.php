@@ -9,12 +9,12 @@ use TimLappe\Elephactor\Domain\Php\AST\Model\Node;
 use TimLappe\Elephactor\Domain\Php\AST\Model\NodeKind;
 use TimLappe\Elephactor\Domain\Php\AST\Model\StatementNode;
 
-final class HaltCompilerStatementNode extends AbstractNode implements StatementNode
+final readonly class HaltCompilerStatementNode extends AbstractNode implements StatementNode
 {
     public function __construct(
         private readonly string $remainingContent
     ) {
-        parent::__construct(NodeKind::HALT_COMPILER_STATEMENT);
+        parent::__construct();
     }
 
     public function remainingContent(): string

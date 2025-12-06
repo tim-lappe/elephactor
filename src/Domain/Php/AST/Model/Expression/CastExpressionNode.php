@@ -10,13 +10,13 @@ use TimLappe\Elephactor\Domain\Php\AST\Model\Node;
 use TimLappe\Elephactor\Domain\Php\AST\Model\NodeKind;
 use TimLappe\Elephactor\Domain\Php\AST\Model\Value\CastType;
 
-final class CastExpressionNode extends AbstractNode implements ExpressionNode
+final readonly class CastExpressionNode extends AbstractNode implements ExpressionNode
 {
     public function __construct(
         private readonly CastType $type,
         private readonly ExpressionNode $expression
     ) {
-        parent::__construct(NodeKind::CAST_EXPRESSION);
+        parent::__construct();
     }
 
     public function type(): CastType

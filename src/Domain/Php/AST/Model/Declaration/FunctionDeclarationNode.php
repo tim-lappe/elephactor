@@ -8,17 +8,14 @@ use TimLappe\Elephactor\Domain\Php\AST\Model\AbstractNode;
 use TimLappe\Elephactor\Domain\Php\AST\Model\Argument\ParameterNode;
 use TimLappe\Elephactor\Domain\Php\AST\Model\Attribute\AttributeGroupNode;
 use TimLappe\Elephactor\Domain\Php\AST\Model\Name\IdentifierNode;
-use TimLappe\Elephactor\Domain\Php\AST\Model\Node;
-use TimLappe\Elephactor\Domain\Php\AST\Model\NodeKind;
 use TimLappe\Elephactor\Domain\Php\AST\Model\StatementNode;
 use TimLappe\Elephactor\Domain\Php\AST\Model\DeclarationNode;
 use TimLappe\Elephactor\Domain\Php\AST\Model\TypeNode;
 use TimLappe\Elephactor\Domain\Php\AST\Model\Value\DocBlock;
 use TimLappe\Elephactor\Domain\Php\AST\Model\Value\Identifier;
 
-final class FunctionDeclarationNode extends AbstractNode implements DeclarationNode
+final readonly class FunctionDeclarationNode extends AbstractNode implements DeclarationNode
 {
-    private IdentifierNode $name;
     /**
      * @param list<AttributeGroupNode> $attributes
      * @param list<ParameterNode>      $parameters
@@ -26,21 +23,39 @@ final class FunctionDeclarationNode extends AbstractNode implements DeclarationN
      */
     public function __construct(
         Identifier $name,
-        private readonly array $attributes,
-        private readonly array $parameters,
-        private readonly array $bodyStatements,
-        private readonly ?TypeNode $returnType = null,
+        array $attributes,
+        array $parameters,
+        array $bodyStatements,
+        ?TypeNode $returnType = null,
         private readonly bool $returnsByReference = false,
         private readonly ?DocBlock $docBlock = null
     ) {
-        parent::__construct(NodeKind::FUNCTION_DECLARATION);
+        parent::__construct();
 
-        $this->name = new IdentifierNode($name, $this);
+        $name = new IdentifierNode($name);
+
+        $this->children()->add("name", $name);
+
+        foreach ($attributes as $attribute) {
+            $this->children()->add("attribute", $attribute);
+        }
+
+        foreach ($parameters as $parameter) {
+            $this->children()->add("parameter", $parameter);
+        }
+
+        foreach ($bodyStatements as $bodyStatement) {
+            $this->children()->add("bodyStatement", $bodyStatement);
+        }
+
+        if ($returnType !== null) {
+            $this->children()->add("returnType", $returnType);
+        }
     }
 
     public function name(): IdentifierNode
     {
-        return $this->name;
+        return $this->children()->getOne("name", IdentifierNode::class) ?? throw new \RuntimeException('Name not found');
     }
 
     /**
@@ -48,7 +63,7 @@ final class FunctionDeclarationNode extends AbstractNode implements DeclarationN
      */
     public function attributes(): array
     {
-        return $this->attributes;
+        return $this->children()->getAllOf("attribute", AttributeGroupNode::class);
     }
 
     /**
@@ -56,7 +71,7 @@ final class FunctionDeclarationNode extends AbstractNode implements DeclarationN
      */
     public function parameters(): array
     {
-        return $this->parameters;
+        return $this->children()->getAllOf("parameter", ParameterNode::class);
     }
 
     /**
@@ -64,12 +79,12 @@ final class FunctionDeclarationNode extends AbstractNode implements DeclarationN
      */
     public function bodyStatements(): array
     {
-        return $this->bodyStatements;
+        return $this->children()->getAllOf("bodyStatement", StatementNode::class);
     }
 
     public function returnType(): ?TypeNode
     {
-        return $this->returnType;
+        return $this->children()->getOne("returnType", TypeNode::class);
     }
 
     public function returnsByReference(): bool
@@ -80,24 +95,5 @@ final class FunctionDeclarationNode extends AbstractNode implements DeclarationN
     public function docBlock(): ?DocBlock
     {
         return $this->docBlock;
-    }
-
-    /**
-     * @return list<Node>
-     */
-    public function children(): array
-    {
-        $children = [
-            $this->name,
-            ...$this->attributes,
-            ...$this->parameters,
-            ...$this->bodyStatements,
-        ];
-
-        if ($this->returnType !== null) {
-            $children[] = $this->returnType;
-        }
-
-        return $children;
     }
 }

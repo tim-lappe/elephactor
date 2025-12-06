@@ -4,57 +4,20 @@ declare(strict_types=1);
 
 namespace TimLappe\Elephactor\Domain\Php\AST\Model;
 
-abstract class AbstractNode implements Node
+abstract readonly class AbstractNode implements Node
 {
-    public function __construct(
-        private readonly NodeKind $kind,
-    ) {
-    }
-
-    final public function kind(): NodeKind
-    {
-        return $this->kind;
-    }
-
     /**
-     * @template T of Node
-     *
-     * @param  class-string<T> $class
-     * @return list<T>
+     * @var NodeCollection
      */
-    public function findChildrenOfType(string $class): array
+    private NodeCollection $children;
+
+    public function __construct() 
     {
-        $children = [];
-
-        foreach ($this->children() as $child) {
-            if ($child instanceof $class) {
-                $children[] = $child;
-            }
-        }
-
-        return $children;
+        $this->children = new NodeCollection();
     }
 
-    /**
-     * @template T of Node
-     *
-     * @param  class-string<T> $class
-     * @return list<T>
-     */
-    public function findNestedChildrenOfType(string $class): array
+    final public function children(): NodeCollection
     {
-        $children = [];
-
-        foreach ($this->children() as $child) {
-            if ($child instanceof $class) {
-                $children[] = $child;
-            }
-
-            if ($child instanceof AbstractNode) {
-                $children = array_merge($children, $child->findNestedChildrenOfType($class));
-            }
-        }
-
-        return $children;
+        return $this->children;
     }
 }

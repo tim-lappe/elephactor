@@ -9,13 +9,13 @@ use TimLappe\Elephactor\Domain\Php\AST\Model\ExpressionNode;
 use TimLappe\Elephactor\Domain\Php\AST\Model\Node;
 use TimLappe\Elephactor\Domain\Php\AST\Model\NodeKind;
 
-final class YieldExpressionNode extends AbstractNode implements ExpressionNode
+final readonly class YieldExpressionNode extends AbstractNode implements ExpressionNode
 {
     public function __construct(
         private readonly ?ExpressionNode $value,
         private readonly ?ExpressionNode $key = null
     ) {
-        parent::__construct(NodeKind::YIELD_EXPRESSION);
+        parent::__construct();
     }
 
     public function value(): ?ExpressionNode

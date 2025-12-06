@@ -5,23 +5,11 @@ declare(strict_types=1);
 namespace TimLappe\Elephactor\Domain\Php\AST\Model\UseTrait;
 
 use TimLappe\Elephactor\Domain\Php\AST\Model\AbstractNode;
-use TimLappe\Elephactor\Domain\Php\AST\Model\Name\IdentifierNode;
-use TimLappe\Elephactor\Domain\Php\AST\Model\Name\QualifiedNameNode;
-use TimLappe\Elephactor\Domain\Php\AST\Model\Node;
-use TimLappe\Elephactor\Domain\Php\AST\Model\NodeKind;
 use TimLappe\Elephactor\Domain\Php\AST\Model\Value\Identifier;
 use TimLappe\Elephactor\Domain\Php\AST\Model\Value\QualifiedName;
 
-final class TraitPrecedenceAdaptationNode extends AbstractNode implements TraitAdaptationNode
+final readonly class TraitPrecedenceAdaptationNode extends AbstractNode implements TraitAdaptationNode
 {
-    private QualifiedNameNode $originatingTrait;
-    private IdentifierNode $method;
-
-    /**
-     * @var list<QualifiedNameNode>
-     */
-    private readonly array $insteadOf;
-
     /**
      * @param list<QualifiedName> $insteadOf
      */
@@ -30,47 +18,41 @@ final class TraitPrecedenceAdaptationNode extends AbstractNode implements TraitA
         Identifier $method,
         array $insteadOf
     ) {
+        parent::__construct();
+
         if ($insteadOf === []) {
             throw new \InvalidArgumentException('Trait precedence adaptation requires at least one replacement trait');
         }
 
-        parent::__construct(NodeKind::TRAIT_PRECEDENCE_ADAPTATION);
-
-        $this->originatingTrait = new QualifiedNameNode($originatingTrait, $this);
-        $this->method = new IdentifierNode($method, $this);
-        $this->insteadOf = array_map(
-            fn (QualifiedName $qualifiedName): QualifiedNameNode => new QualifiedNameNode($qualifiedName, $this),
+        $originatingTrait = new TraitQualifiedNameNode($originatingTrait);
+        $method = new TraitMethodIdentifierNode($method);
+        $insteadOf = array_map(
+            fn (QualifiedName $qualifiedName): TraitInsteadOfQualifiedNameNode => new TraitInsteadOfQualifiedNameNode($qualifiedName),
             $insteadOf,
         );
+
+        $this->children()->add($originatingTrait);
+        $this->children()->add($method);
+        foreach ($insteadOf as $insteadOfTrait) {
+            $this->children()->add($insteadOfTrait);
+        }
     }
 
-    public function originatingTrait(): QualifiedNameNode
+    public function originatingTrait(): TraitQualifiedNameNode
     {
-        return $this->originatingTrait;
+        return $this->children()->firstOfType(TraitQualifiedNameNode::class) ?? throw new \RuntimeException('Trait originating trait not found');
     }
 
-    public function method(): IdentifierNode
+    public function method(): TraitMethodIdentifierNode
     {
-        return $this->method;
+        return $this->children()->firstOfType(TraitMethodIdentifierNode::class) ?? throw new \RuntimeException('Trait method not found');
     }
 
     /**
-     * @return list<QualifiedNameNode>
+     * @return list<TraitInsteadOfQualifiedNameNode>
      */
     public function insteadOf(): array
     {
-        return $this->insteadOf;
-    }
-
-    /**
-     * @return list<Node>
-     */
-    public function children(): array
-    {
-        return [
-            $this->originatingTrait,
-            $this->method,
-            ...$this->insteadOf,
-        ];
+        return $this->children()->filterTypeToArray(TraitInsteadOfQualifiedNameNode::class);
     }
 }

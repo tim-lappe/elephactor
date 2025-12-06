@@ -9,7 +9,7 @@ use TimLappe\Elephactor\Domain\Php\AST\Model\ExpressionNode;
 use TimLappe\Elephactor\Domain\Php\AST\Model\Node;
 use TimLappe\Elephactor\Domain\Php\AST\Model\NodeKind;
 
-final class ListExpressionNode extends AbstractNode implements ExpressionNode
+final readonly class ListExpressionNode extends AbstractNode implements ExpressionNode
 {
     /**
      * @param list<ListItemNode> $items
@@ -18,7 +18,7 @@ final class ListExpressionNode extends AbstractNode implements ExpressionNode
         private readonly array $items,
         private readonly ExpressionNode $value
     ) {
-        parent::__construct(NodeKind::LIST_EXPRESSION);
+        parent::__construct();
     }
 
     /**

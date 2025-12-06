@@ -7,44 +7,31 @@ namespace TimLappe\Elephactor\Domain\Php\AST\Model\Declaration;
 use TimLappe\Elephactor\Domain\Php\AST\Model\AbstractNode;
 use TimLappe\Elephactor\Domain\Php\AST\Model\ExpressionNode;
 use TimLappe\Elephactor\Domain\Php\AST\Model\Name\IdentifierNode;
-use TimLappe\Elephactor\Domain\Php\AST\Model\Node;
-use TimLappe\Elephactor\Domain\Php\AST\Model\NodeKind;
 use TimLappe\Elephactor\Domain\Php\AST\Model\Value\Identifier;
 
-final class PropertyNode extends AbstractNode
+final readonly class PropertyNode extends AbstractNode
 {
-    private IdentifierNode $name;
-
     public function __construct(
         Identifier $name,
-        private readonly ?ExpressionNode $defaultValue = null
+        ?ExpressionNode $defaultValue = null
     ) {
-        parent::__construct(NodeKind::PROPERTY);
+        parent::__construct();
 
-        $this->name = new IdentifierNode($name, $this);
+        $name = new IdentifierNode($name);
+        $this->children()->add("name", $name);
+
+        if ($defaultValue !== null) {
+            $this->children()->add("defaultValue", $defaultValue);
+        }
     }
 
     public function name(): IdentifierNode
     {
-        return $this->name;
+        return $this->children()->getOne("name", IdentifierNode::class) ?? throw new \RuntimeException('Name not found');
     }
 
     public function defaultValue(): ?ExpressionNode
     {
-        return $this->defaultValue;
-    }
-
-    /**
-     * @return list<Node>
-     */
-    public function children(): array
-    {
-        $children = [$this->name];
-
-        if ($this->defaultValue !== null) {
-            $children[] = $this->defaultValue;
-        }
-
-        return $children;
+        return $this->children()->getOne("defaultValue", ExpressionNode::class);
     }
 }

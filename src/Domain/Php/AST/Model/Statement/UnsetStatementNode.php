@@ -10,7 +10,7 @@ use TimLappe\Elephactor\Domain\Php\AST\Model\Node;
 use TimLappe\Elephactor\Domain\Php\AST\Model\NodeKind;
 use TimLappe\Elephactor\Domain\Php\AST\Model\StatementNode;
 
-final class UnsetStatementNode extends AbstractNode implements StatementNode
+final readonly class UnsetStatementNode extends AbstractNode implements StatementNode
 {
     /**
      * @param list<ExpressionNode> $expressions
@@ -22,7 +22,7 @@ final class UnsetStatementNode extends AbstractNode implements StatementNode
             throw new \InvalidArgumentException('Unset statement requires at least one expression');
         }
 
-        parent::__construct(NodeKind::UNSET_STATEMENT);
+        parent::__construct();
     }
 
     /**

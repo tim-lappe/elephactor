@@ -9,12 +9,12 @@ use TimLappe\Elephactor\Domain\Php\AST\Model\ExpressionNode;
 use TimLappe\Elephactor\Domain\Php\AST\Model\Node;
 use TimLappe\Elephactor\Domain\Php\AST\Model\NodeKind;
 
-final class CloneExpressionNode extends AbstractNode implements ExpressionNode
+final readonly class CloneExpressionNode extends AbstractNode implements ExpressionNode
 {
     public function __construct(
         private readonly ExpressionNode $expression
     ) {
-        parent::__construct(NodeKind::CLONE_EXPRESSION);
+        parent::__construct();
     }
 
     public function expression(): ExpressionNode

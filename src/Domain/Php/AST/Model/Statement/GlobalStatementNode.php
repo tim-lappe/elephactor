@@ -10,7 +10,7 @@ use TimLappe\Elephactor\Domain\Php\AST\Model\Node;
 use TimLappe\Elephactor\Domain\Php\AST\Model\NodeKind;
 use TimLappe\Elephactor\Domain\Php\AST\Model\StatementNode;
 
-final class GlobalStatementNode extends AbstractNode implements StatementNode
+final readonly class GlobalStatementNode extends AbstractNode implements StatementNode
 {
     /**
      * @param list<ExpressionNode> $variables
@@ -22,7 +22,7 @@ final class GlobalStatementNode extends AbstractNode implements StatementNode
             throw new \InvalidArgumentException('Global statement requires at least one variable');
         }
 
-        parent::__construct(NodeKind::GLOBAL_STATEMENT);
+        parent::__construct();
     }
 
     /**

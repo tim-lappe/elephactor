@@ -5,11 +5,9 @@ declare(strict_types=1);
 namespace TimLappe\Elephactor\Domain\Php\AST\Model\Type;
 
 use TimLappe\Elephactor\Domain\Php\AST\Model\AbstractNode;
-use TimLappe\Elephactor\Domain\Php\AST\Model\Node;
-use TimLappe\Elephactor\Domain\Php\AST\Model\NodeKind;
 use TimLappe\Elephactor\Domain\Php\AST\Model\TypeNode;
 
-final class CallableTypeNode extends AbstractNode implements TypeNode
+final readonly class CallableTypeNode extends AbstractNode implements TypeNode
 {
     /**
      * @param list<CallableParameter> $parameters
@@ -18,7 +16,18 @@ final class CallableTypeNode extends AbstractNode implements TypeNode
         private readonly array $parameters,
         private readonly ?TypeNode $returnType
     ) {
-        parent::__construct(NodeKind::TYPE_REFERENCE);
+        parent::__construct();
+
+        foreach ($parameters as $parameter) {
+            $type = $parameter->type();
+            if ($type !== null) {
+                $this->children()->add($type);
+            }
+        }
+
+        if ($this->returnType !== null) {
+            $this->children()->add($this->returnType);
+        }
     }
 
     /**
@@ -32,24 +41,5 @@ final class CallableTypeNode extends AbstractNode implements TypeNode
     public function returnType(): ?TypeNode
     {
         return $this->returnType;
-    }
-
-    /**
-     * @return list<Node>
-     */
-    public function children(): array
-    {
-        $children = array_values(array_filter(
-            array_map(
-                static fn (CallableParameter $parameter): ?TypeNode => $parameter->type(),
-                $this->parameters,
-            ),
-        ));
-
-        if ($this->returnType !== null) {
-            $children[] = $this->returnType;
-        }
-
-        return $children;
     }
 }

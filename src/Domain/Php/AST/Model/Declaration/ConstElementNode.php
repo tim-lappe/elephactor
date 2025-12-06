@@ -7,41 +7,27 @@ namespace TimLappe\Elephactor\Domain\Php\AST\Model\Declaration;
 use TimLappe\Elephactor\Domain\Php\AST\Model\AbstractNode;
 use TimLappe\Elephactor\Domain\Php\AST\Model\ExpressionNode;
 use TimLappe\Elephactor\Domain\Php\AST\Model\Name\IdentifierNode;
-use TimLappe\Elephactor\Domain\Php\AST\Model\Node;
-use TimLappe\Elephactor\Domain\Php\AST\Model\NodeKind;
 use TimLappe\Elephactor\Domain\Php\AST\Model\Value\Identifier;
 
-final class ConstElementNode extends AbstractNode
+final readonly class ConstElementNode extends AbstractNode
 {
-    private IdentifierNode $name;
-
     public function __construct(
         Identifier $name,
-        private readonly ExpressionNode $value
+        ExpressionNode $value
     ) {
-        parent::__construct(NodeKind::CONST_ELEMENT);
+        parent::__construct();
 
-        $this->name = new IdentifierNode($name, $this);
+        $this->children()->add("name", new IdentifierNode($name));
+        $this->children()->add("value", $value);
     }
 
     public function name(): IdentifierNode
     {
-        return $this->name;
+        return $this->children()->getOne("name", IdentifierNode::class) ?? throw new \RuntimeException('Name not found');
     }
 
     public function value(): ExpressionNode
     {
-        return $this->value;
-    }
-
-    /**
-     * @return list<Node>
-     */
-    public function children(): array
-    {
-        return [
-            $this->name,
-            $this->value,
-        ];
+        return $this->children()->getOne("value", ExpressionNode::class) ?? throw new \RuntimeException('Value not found');
     }
 }

@@ -9,12 +9,12 @@ use TimLappe\Elephactor\Domain\Php\AST\Model\ExpressionNode;
 use TimLappe\Elephactor\Domain\Php\AST\Model\Node;
 use TimLappe\Elephactor\Domain\Php\AST\Model\NodeKind;
 
-final class EncapsedStringPartNode extends AbstractNode
+final readonly class EncapsedStringPartNode extends AbstractNode
 {
     public function __construct(
         private readonly string|ExpressionNode $part
     ) {
-        parent::__construct(NodeKind::ENCAPSED_STRING_PART);
+        parent::__construct();
     }
 
     public function part(): string|ExpressionNode

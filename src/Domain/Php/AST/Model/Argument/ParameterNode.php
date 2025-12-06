@@ -8,42 +8,50 @@ use TimLappe\Elephactor\Domain\Php\AST\Model\AbstractNode;
 use TimLappe\Elephactor\Domain\Php\AST\Model\Attribute\AttributeGroupNode;
 use TimLappe\Elephactor\Domain\Php\AST\Model\Name\IdentifierNode;
 use TimLappe\Elephactor\Domain\Php\AST\Model\ExpressionNode;
-use TimLappe\Elephactor\Domain\Php\AST\Model\Node;
-use TimLappe\Elephactor\Domain\Php\AST\Model\NodeKind;
 use TimLappe\Elephactor\Domain\Php\AST\Model\TypeNode;
-use TimLappe\Elephactor\Domain\Php\AST\Model\Value\Identifier;
 use TimLappe\Elephactor\Domain\Php\AST\Model\Value\ParameterPassingMode;
 use TimLappe\Elephactor\Domain\Php\AST\Model\Value\Visibility;
 
-final class ParameterNode extends AbstractNode
+final readonly class ParameterNode extends AbstractNode
 {
-    private IdentifierNode $name;
     /**
      * @param list<AttributeGroupNode> $attributes
      */
     public function __construct(
-        Identifier $name,
-        private readonly ?TypeNode $type = null,
+        IdentifierNode $name,
+        ?TypeNode $type = null,
         private readonly ParameterPassingMode $passingMode = ParameterPassingMode::BY_VALUE,
         private readonly bool $variadic = false,
-        private readonly ?ExpressionNode $defaultValue = null,
+        ?ExpressionNode $defaultValue = null,
         private readonly ?Visibility $promotedVisibility = null,
         private readonly bool $promotedReadonly = false,
-        private readonly array $attributes = []
+        array $attributes = []
     ) {
-        parent::__construct(NodeKind::PARAMETER);
+        parent::__construct();
 
-        $this->name = new IdentifierNode($name, $this);
+        $this->children()->add('name', $name);
+
+        foreach ($attributes as $attribute) {
+            $this->children()->add('attribute', $attribute);
+        }
+
+        if ($type !== null) {
+            $this->children()->add('type', $type);
+        }
+
+        if ($defaultValue !== null) {
+            $this->children()->add('defaultValue', $defaultValue);
+        }
     }
 
     public function name(): IdentifierNode
     {
-        return $this->name;
+        return $this->children()->getOne('name', IdentifierNode::class) ?? throw new \RuntimeException('Identifier not found');
     }
 
     public function type(): ?TypeNode
     {
-        return $this->type;
+        return $this->children()->getOne('type', TypeNode::class);
     }
 
     public function passingMode(): ParameterPassingMode
@@ -58,7 +66,7 @@ final class ParameterNode extends AbstractNode
 
     public function defaultValue(): ?ExpressionNode
     {
-        return $this->defaultValue;
+        return $this->children()->getOne('defaultValue', ExpressionNode::class);
     }
 
     public function promotedVisibility(): ?Visibility
@@ -76,27 +84,6 @@ final class ParameterNode extends AbstractNode
      */
     public function attributes(): array
     {
-        return $this->attributes;
-    }
-
-    /**
-     * @return list<Node>
-     */
-    public function children(): array
-    {
-        $children = [
-            $this->name,
-            ...$this->attributes,
-        ];
-
-        if ($this->type !== null) {
-            $children[] = $this->type;
-        }
-
-        if ($this->defaultValue !== null) {
-            $children[] = $this->defaultValue;
-        }
-
-        return $children;
+        return $this->children()->getAllOf('attribute', AttributeGroupNode::class);
     }
 }

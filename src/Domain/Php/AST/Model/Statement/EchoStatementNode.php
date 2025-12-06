@@ -6,23 +6,25 @@ namespace TimLappe\Elephactor\Domain\Php\AST\Model\Statement;
 
 use TimLappe\Elephactor\Domain\Php\AST\Model\AbstractNode;
 use TimLappe\Elephactor\Domain\Php\AST\Model\ExpressionNode;
-use TimLappe\Elephactor\Domain\Php\AST\Model\Node;
-use TimLappe\Elephactor\Domain\Php\AST\Model\NodeKind;
 use TimLappe\Elephactor\Domain\Php\AST\Model\StatementNode;
 
-final class EchoStatementNode extends AbstractNode implements StatementNode
+final readonly class EchoStatementNode extends AbstractNode implements StatementNode
 {
     /**
      * @param list<ExpressionNode> $expressions
      */
     public function __construct(
-        private readonly array $expressions
+        array $expressions
     ) {
         if ($expressions === []) {
             throw new \InvalidArgumentException('Echo statement requires at least one expression');
         }
 
-        parent::__construct(NodeKind::ECHO_STATEMENT);
+        parent::__construct();
+
+        foreach ($expressions as $expression) {
+            $this->children()->add($expression);
+        }
     }
 
     /**
@@ -30,14 +32,6 @@ final class EchoStatementNode extends AbstractNode implements StatementNode
      */
     public function expressions(): array
     {
-        return $this->expressions;
-    }
-
-    /**
-     * @return list<Node>
-     */
-    public function children(): array
-    {
-        return $this->expressions;
+        return $this->children()->filterTypeToArray(ExpressionNode::class);
     }
 }

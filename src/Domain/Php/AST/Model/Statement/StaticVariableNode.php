@@ -11,7 +11,7 @@ use TimLappe\Elephactor\Domain\Php\AST\Model\Node;
 use TimLappe\Elephactor\Domain\Php\AST\Model\NodeKind;
 use TimLappe\Elephactor\Domain\Php\AST\Model\Value\Identifier;
 
-final class StaticVariableNode extends AbstractNode
+final readonly class StaticVariableNode extends AbstractNode
 {
     private IdentifierNode $name;
 
@@ -19,7 +19,7 @@ final class StaticVariableNode extends AbstractNode
         Identifier $name,
         private readonly ?ExpressionNode $defaultValue = null
     ) {
-        parent::__construct(NodeKind::STATIC_VARIABLE);
+        parent::__construct();
 
         $this->name = new IdentifierNode($name, $this);
     }

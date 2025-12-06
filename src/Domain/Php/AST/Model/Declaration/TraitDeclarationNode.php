@@ -9,37 +9,39 @@ use TimLappe\Elephactor\Domain\Php\AST\Model\Attribute\AttributeGroupNode;
 use TimLappe\Elephactor\Domain\Php\AST\Model\Name\IdentifierNode;
 use TimLappe\Elephactor\Domain\Php\AST\Model\ClassLikeNode;
 use TimLappe\Elephactor\Domain\Php\AST\Model\MemberNode;
-use TimLappe\Elephactor\Domain\Php\AST\Model\Node;
-use TimLappe\Elephactor\Domain\Php\AST\Model\NodeKind;
 use TimLappe\Elephactor\Domain\Php\AST\Model\Value\DocBlock;
 use TimLappe\Elephactor\Domain\Php\AST\Model\Value\Identifier;
 
-final class TraitDeclarationNode extends AbstractNode implements ClassLikeNode
+final readonly class TraitDeclarationNode extends AbstractNode implements ClassLikeNode
 {
-    private IdentifierNode $name;
     /**
      * @param list<AttributeGroupNode> $attributes
      * @param list<MemberNode>         $members
      */
     public function __construct(
         Identifier $name,
-        private readonly array $attributes,
-        private readonly array $members,
+        array $attributes,
+        array $members,
         private readonly ?DocBlock $docBlock = null
     ) {
-        parent::__construct(NodeKind::TRAIT_DECLARATION);
+        parent::__construct();
 
-        $this->name = new IdentifierNode($name, $this);
+        $name = new IdentifierNode($name);
+
+        $this->children()->add("name", $name);
+
+        foreach ($attributes as $attribute) {
+            $this->children()->add("attribute", $attribute);
+        }
+
+        foreach ($members as $member) {
+            $this->children()->add("member", $member);
+        }
     }
 
     public function name(): IdentifierNode
     {
-        return $this->name;
-    }
-
-    public function changeName(Identifier $name): void
-    {
-        $this->name->changeIdentifier($name);
+        return $this->children()->getOne("name", IdentifierNode::class) ?? throw new \RuntimeException('Name not found');
     }
 
     /**
@@ -47,7 +49,7 @@ final class TraitDeclarationNode extends AbstractNode implements ClassLikeNode
      */
     public function attributes(): array
     {
-        return $this->attributes;
+        return $this->children()->getAllOf("attribute", AttributeGroupNode::class);
     }
 
     /**
@@ -55,23 +57,11 @@ final class TraitDeclarationNode extends AbstractNode implements ClassLikeNode
      */
     public function members(): array
     {
-        return $this->members;
+        return $this->children()->getAllOf("member", MemberNode::class);
     }
 
     public function docBlock(): ?DocBlock
     {
         return $this->docBlock;
-    }
-
-    /**
-     * @return list<Node>
-     */
-    public function children(): array
-    {
-        return [
-            $this->name,
-            ...$this->attributes,
-            ...$this->members,
-        ];
     }
 }

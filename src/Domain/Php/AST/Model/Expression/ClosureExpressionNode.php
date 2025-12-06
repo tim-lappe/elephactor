@@ -13,7 +13,7 @@ use TimLappe\Elephactor\Domain\Php\AST\Model\NodeKind;
 use TimLappe\Elephactor\Domain\Php\AST\Model\StatementNode;
 use TimLappe\Elephactor\Domain\Php\AST\Model\TypeNode;
 
-final class ClosureExpressionNode extends AbstractNode implements ExpressionNode
+final readonly class ClosureExpressionNode extends AbstractNode implements ExpressionNode
 {
     /**
      * @param list<AttributeGroupNode>     $attributes
@@ -30,7 +30,7 @@ final class ClosureExpressionNode extends AbstractNode implements ExpressionNode
         private readonly bool $static = false,
         private readonly bool $returnsByReference = false
     ) {
-        parent::__construct(NodeKind::CLOSURE_EXPRESSION);
+        parent::__construct();
     }
 
     /**

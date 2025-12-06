@@ -6,16 +6,18 @@ namespace TimLappe\Elephactor\Domain\Php\AST\Model\Expression;
 
 use TimLappe\Elephactor\Domain\Php\AST\Model\AbstractNode;
 use TimLappe\Elephactor\Domain\Php\AST\Model\ExpressionNode;
-use TimLappe\Elephactor\Domain\Php\AST\Model\Node;
-use TimLappe\Elephactor\Domain\Php\AST\Model\NodeKind;
 
-final class ExitExpressionNode extends AbstractNode implements ExpressionNode
+final readonly class ExitExpressionNode extends AbstractNode implements ExpressionNode
 {
     public function __construct(
         private readonly ?ExpressionNode $expression,
         private readonly bool $dieAlias = false
     ) {
-        parent::__construct(NodeKind::EXIT_EXPRESSION);
+        parent::__construct();
+
+        if ($this->expression !== null) {
+            $this->children()->add($this->expression);
+        }
     }
 
     public function expression(): ?ExpressionNode
@@ -26,13 +28,5 @@ final class ExitExpressionNode extends AbstractNode implements ExpressionNode
     public function usesDieAlias(): bool
     {
         return $this->dieAlias;
-    }
-
-    /**
-     * @return list<Node>
-     */
-    public function children(): array
-    {
-        return $this->expression !== null ? [$this->expression] : [];
     }
 }

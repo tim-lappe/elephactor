@@ -5,28 +5,37 @@ declare(strict_types=1);
 namespace TimLappe\Elephactor\Domain\Php\AST\Model\Statement;
 
 use TimLappe\Elephactor\Domain\Php\AST\Model\AbstractNode;
-use TimLappe\Elephactor\Domain\Php\AST\Model\Node;
-use TimLappe\Elephactor\Domain\Php\AST\Model\NodeKind;
 use TimLappe\Elephactor\Domain\Php\AST\Model\StatementNode;
 use TimLappe\Elephactor\Domain\Php\AST\Model\TypeNode;
 use TimLappe\Elephactor\Domain\Php\AST\Model\Value\Identifier;
 
-final class CatchClauseNode extends AbstractNode
+final readonly class CatchClauseNode extends AbstractNode
 {
+    private int $typesCount;
     /**
      * @param list<TypeNode>      $types
      * @param list<StatementNode> $statements
      */
     public function __construct(
-        private readonly array $types,
+        array $types,
         private readonly Identifier $variable,
-        private readonly array $statements
+        array $statements
     ) {
         if ($types === []) {
             throw new \InvalidArgumentException('Catch clause requires at least one type');
         }
 
-        parent::__construct(NodeKind::CATCH_CLAUSE);
+        parent::__construct();
+
+        $this->typesCount = count($types);
+
+        foreach ($types as $type) {
+            $this->children()->add($type);
+        }
+
+        foreach ($statements as $statement) {
+            $this->children()->add($statement);
+        }
     }
 
     /**
@@ -34,7 +43,11 @@ final class CatchClauseNode extends AbstractNode
      */
     public function types(): array
     {
-        return $this->types;
+        return array_slice(
+            $this->children()->toArray(),
+            0,
+            $this->typesCount,
+        );
     }
 
     public function variable(): Identifier
@@ -47,17 +60,9 @@ final class CatchClauseNode extends AbstractNode
      */
     public function statements(): array
     {
-        return $this->statements;
-    }
-
-    /**
-     * @return list<Node>
-     */
-    public function children(): array
-    {
-        return [
-            ...$this->types,
-            ...$this->statements,
-        ];
+        return array_slice(
+            $this->children()->toArray(),
+            $this->typesCount,
+        );
     }
 }

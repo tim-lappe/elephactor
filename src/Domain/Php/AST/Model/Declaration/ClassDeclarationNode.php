@@ -10,23 +10,13 @@ use TimLappe\Elephactor\Domain\Php\AST\Model\Name\IdentifierNode;
 use TimLappe\Elephactor\Domain\Php\AST\Model\Name\QualifiedNameNode;
 use TimLappe\Elephactor\Domain\Php\AST\Model\ClassLikeNode;
 use TimLappe\Elephactor\Domain\Php\AST\Model\MemberNode;
-use TimLappe\Elephactor\Domain\Php\AST\Model\Node;
-use TimLappe\Elephactor\Domain\Php\AST\Model\NodeKind;
 use TimLappe\Elephactor\Domain\Php\AST\Model\Value\ClassModifiers;
 use TimLappe\Elephactor\Domain\Php\AST\Model\Value\DocBlock;
 use TimLappe\Elephactor\Domain\Php\AST\Model\Value\Identifier;
 use TimLappe\Elephactor\Domain\Php\AST\Model\Value\QualifiedName;
 
-final class ClassDeclarationNode extends AbstractNode implements ClassLikeNode
+final readonly class ClassDeclarationNode extends AbstractNode implements ClassLikeNode
 {
-    private IdentifierNode $name;
-
-    /**
-     * @var list<QualifiedNameNode>
-     */
-    private readonly array $interfaces;
-
-    private readonly ?QualifiedNameNode $extends;
     /**
      * @param list<AttributeGroupNode> $attributes
      * @param list<QualifiedName>      $interfaces
@@ -35,30 +25,42 @@ final class ClassDeclarationNode extends AbstractNode implements ClassLikeNode
     public function __construct(
         Identifier $name,
         private readonly ClassModifiers $modifiers,
-        private readonly array $attributes,
+        array $attributes,
         array $interfaces,
-        private readonly array $members,
+        array $members,
         ?QualifiedName $extends = null,
         private readonly ?DocBlock $docBlock = null
     ) {
-        parent::__construct(NodeKind::CLASS_DECLARATION);
+        parent::__construct();
 
-        $this->name = new IdentifierNode($name, $this);
-        $this->interfaces = array_map(
-            fn (QualifiedName $interface): QualifiedNameNode => new QualifiedNameNode($interface, $this),
+        $name = new IdentifierNode($name);
+        $interfaces = array_map(
+            fn (QualifiedName $interface): QualifiedNameNode => new QualifiedNameNode($interface),
             $interfaces,
         );
-        $this->extends = $extends !== null ? new QualifiedNameNode($extends, $this) : null;
+
+        $this->children()->add("name", $name);
+
+        foreach ($attributes as $attribute) {
+            $this->children()->add("attribute", $attribute);
+        }
+
+        foreach ($members as $member) {
+            $this->children()->add("member", $member);
+        }
+
+        foreach ($interfaces as $interface) {
+            $this->children()->add("interface", $interface);
+        }
+
+        if ($extends !== null) {
+            $this->children()->add("extends", new QualifiedNameNode($extends));
+        }
     }
 
     public function name(): IdentifierNode
     {
-        return $this->name;
-    }
-
-    public function changeName(Identifier $name): void
-    {
-        $this->name->changeIdentifier($name);
+        return $this->children()->getOne("name", IdentifierNode::class) ?? throw new \RuntimeException('Name not found');
     }
 
     public function modifiers(): ClassModifiers
@@ -71,12 +73,12 @@ final class ClassDeclarationNode extends AbstractNode implements ClassLikeNode
      */
     public function attributes(): array
     {
-        return $this->attributes;
+        return $this->children()->getAllOf("attribute", AttributeGroupNode::class);
     }
 
     public function extends(): ?QualifiedNameNode
     {
-        return $this->extends;
+        return $this->children()->getOne("extends", QualifiedNameNode::class);
     }
 
     /**
@@ -84,7 +86,7 @@ final class ClassDeclarationNode extends AbstractNode implements ClassLikeNode
      */
     public function interfaces(): array
     {
-        return $this->interfaces;
+        return $this->children()->getAllOf("interface", QualifiedNameNode::class);
     }
 
     /**
@@ -92,30 +94,11 @@ final class ClassDeclarationNode extends AbstractNode implements ClassLikeNode
      */
     public function members(): array
     {
-        return $this->members;
+        return $this->children()->getAllOf("member", MemberNode::class);
     }
 
     public function docBlock(): ?DocBlock
     {
         return $this->docBlock;
-    }
-
-    /**
-     * @return list<Node>
-     */
-    public function children(): array
-    {
-        $children = [
-            $this->name,
-            ...$this->attributes,
-            ...$this->members,
-            ...$this->interfaces,
-        ];
-
-        if ($this->extends !== null) {
-            $children[] = $this->extends;
-        }
-
-        return $children;
     }
 }

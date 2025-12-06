@@ -5,41 +5,43 @@ declare(strict_types=1);
 namespace TimLappe\Elephactor\Domain\Php\AST\Model\UseTrait;
 
 use TimLappe\Elephactor\Domain\Php\AST\Model\AbstractNode;
-use TimLappe\Elephactor\Domain\Php\AST\Model\Name\IdentifierNode;
-use TimLappe\Elephactor\Domain\Php\AST\Model\Name\QualifiedNameNode;
-use TimLappe\Elephactor\Domain\Php\AST\Model\Node;
-use TimLappe\Elephactor\Domain\Php\AST\Model\NodeKind;
 use TimLappe\Elephactor\Domain\Php\AST\Model\Value\Identifier;
 use TimLappe\Elephactor\Domain\Php\AST\Model\Value\QualifiedName;
 use TimLappe\Elephactor\Domain\Php\AST\Model\Value\Visibility;
 
-final class TraitAliasAdaptationNode extends AbstractNode implements TraitAdaptationNode
+final readonly class TraitAliasAdaptationNode extends AbstractNode implements TraitAdaptationNode
 {
-    private IdentifierNode $method;
-    private readonly ?IdentifierNode $alias;
-    private readonly ?QualifiedNameNode $trait;
-
     public function __construct(
         Identifier $method,
         ?Identifier $alias = null,
         private readonly ?Visibility $visibility = null,
         ?QualifiedName $trait = null
     ) {
-        parent::__construct(NodeKind::TRAIT_ALIAS_ADAPTATION);
+        parent::__construct();
 
-        $this->method = new IdentifierNode($method, $this);
-        $this->alias = $alias !== null ? new IdentifierNode($alias, $this) : null;
-        $this->trait = $trait !== null ? new QualifiedNameNode($trait, $this) : null;
+        $method = new TraitMethodIdentifierNode($method);
+        $alias = $alias !== null ? new TraitAliasIdentifierNode($alias) : null;
+        $trait = $trait !== null ? new TraitQualifiedNameNode($trait) : null;
+
+        $this->children()->add($method);
+        
+        if ($alias !== null) {
+            $this->children()->add($alias);
+        }
+        
+        if ($trait !== null) {
+            $this->children()->add($trait);
+        }
     }
 
-    public function method(): IdentifierNode
+    public function method(): TraitMethodIdentifierNode
     {
-        return $this->method;
+        return $this->children()->firstOfType(TraitMethodIdentifierNode::class) ?? throw new \RuntimeException('Trait method not found');
     }
 
-    public function alias(): ?IdentifierNode
+    public function alias(): ?TraitAliasIdentifierNode
     {
-        return $this->alias;
+        return $this->children()->firstOfType(TraitAliasIdentifierNode::class);
     }
 
     public function visibility(): ?Visibility
@@ -47,20 +49,8 @@ final class TraitAliasAdaptationNode extends AbstractNode implements TraitAdapta
         return $this->visibility;
     }
 
-    public function traitName(): ?QualifiedNameNode
+    public function traitName(): ?TraitQualifiedNameNode
     {
-        return $this->trait;
-    }
-
-    /**
-     * @return list<Node>
-     */
-    public function children(): array
-    {
-        return array_values(array_filter([
-            $this->method,
-            $this->alias,
-            $this->trait,
-        ]));
+        return $this->children()->firstOfType(TraitQualifiedNameNode::class);
     }
 }

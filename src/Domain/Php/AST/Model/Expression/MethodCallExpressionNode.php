@@ -8,11 +8,9 @@ use TimLappe\Elephactor\Domain\Php\AST\Model\AbstractNode;
 use TimLappe\Elephactor\Domain\Php\AST\Model\Argument\ArgumentNode;
 use TimLappe\Elephactor\Domain\Php\AST\Model\Name\IdentifierNode;
 use TimLappe\Elephactor\Domain\Php\AST\Model\ExpressionNode;
-use TimLappe\Elephactor\Domain\Php\AST\Model\Node;
-use TimLappe\Elephactor\Domain\Php\AST\Model\NodeKind;
 use TimLappe\Elephactor\Domain\Php\AST\Model\Value\Identifier;
 
-final class MethodCallExpressionNode extends AbstractNode implements ExpressionNode
+final readonly class MethodCallExpressionNode extends AbstractNode implements ExpressionNode
 {
     private IdentifierNode|ExpressionNode $method;
     /**
@@ -24,9 +22,16 @@ final class MethodCallExpressionNode extends AbstractNode implements ExpressionN
         private readonly array $arguments,
         private readonly bool $nullsafe = false
     ) {
-        parent::__construct(NodeKind::METHOD_CALL_EXPRESSION);
+        parent::__construct();
 
-        $this->method = $method instanceof Identifier ? new IdentifierNode($method, $this) : $method;
+        $this->method = $method instanceof Identifier ? new IdentifierNode($method) : $method;
+
+        $this->children()->add($this->object);
+        $this->children()->add($this->method);
+
+        foreach ($this->arguments as $argument) {
+            $this->children()->add($argument);
+        }
     }
 
     public function object(): ExpressionNode
@@ -50,20 +55,5 @@ final class MethodCallExpressionNode extends AbstractNode implements ExpressionN
     public function arguments(): array
     {
         return $this->arguments;
-    }
-
-    /**
-     * @return list<Node>
-     */
-    public function children(): array
-    {
-        $children = [$this->object];
-
-        $children[] = $this->method;
-
-        return [
-            ...$children,
-            ...$this->arguments,
-        ];
     }
 }

@@ -9,7 +9,7 @@ use TimLappe\Elephactor\Domain\Php\AST\Model\ExpressionNode;
 use TimLappe\Elephactor\Domain\Php\AST\Model\Node;
 use TimLappe\Elephactor\Domain\Php\AST\Model\NodeKind;
 
-final class IssetExpressionNode extends AbstractNode implements ExpressionNode
+final readonly class IssetExpressionNode extends AbstractNode implements ExpressionNode
 {
     /**
      * @param list<ExpressionNode> $expressions
@@ -21,7 +21,7 @@ final class IssetExpressionNode extends AbstractNode implements ExpressionNode
             throw new \InvalidArgumentException('Isset expression requires at least one operand');
         }
 
-        parent::__construct(NodeKind::ISSET_EXPRESSION);
+        parent::__construct();
     }
 
     /**

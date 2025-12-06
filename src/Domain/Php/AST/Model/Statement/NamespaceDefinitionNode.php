@@ -11,7 +11,7 @@ use TimLappe\Elephactor\Domain\Php\AST\Model\NodeKind;
 use TimLappe\Elephactor\Domain\Php\AST\Model\StatementNode;
 use TimLappe\Elephactor\Domain\Php\AST\Model\Value\QualifiedName;
 
-final class NamespaceDefinitionNode extends AbstractNode implements StatementNode
+final readonly class NamespaceDefinitionNode extends AbstractNode implements StatementNode
 {
     private QualifiedNameNode $name;
     /**
@@ -22,7 +22,7 @@ final class NamespaceDefinitionNode extends AbstractNode implements StatementNod
         private readonly array $statements,
         private readonly bool $bracketed = false
     ) {
-        parent::__construct(NodeKind::NAMESPACE_DEFINITION);
+        parent::__construct();
 
         $this->name = new QualifiedNameNode($name, $this);
     }

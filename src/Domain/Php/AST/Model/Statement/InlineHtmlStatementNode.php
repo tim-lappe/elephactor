@@ -9,12 +9,12 @@ use TimLappe\Elephactor\Domain\Php\AST\Model\Node;
 use TimLappe\Elephactor\Domain\Php\AST\Model\NodeKind;
 use TimLappe\Elephactor\Domain\Php\AST\Model\StatementNode;
 
-final class InlineHtmlStatementNode extends AbstractNode implements StatementNode
+final readonly class InlineHtmlStatementNode extends AbstractNode implements StatementNode
 {
     public function __construct(
         private readonly string $content
     ) {
-        parent::__construct(NodeKind::INLINE_HTML_STATEMENT);
+        parent::__construct();
     }
 
     public function content(): string

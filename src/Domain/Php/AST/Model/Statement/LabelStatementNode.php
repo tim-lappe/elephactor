@@ -10,12 +10,12 @@ use TimLappe\Elephactor\Domain\Php\AST\Model\NodeKind;
 use TimLappe\Elephactor\Domain\Php\AST\Model\StatementNode;
 use TimLappe\Elephactor\Domain\Php\AST\Model\Value\Identifier;
 
-final class LabelStatementNode extends AbstractNode implements StatementNode
+final readonly class LabelStatementNode extends AbstractNode implements StatementNode
 {
     public function __construct(
         private readonly Identifier $label
     ) {
-        parent::__construct(NodeKind::LABEL_STATEMENT);
+        parent::__construct();
     }
 
     public function label(): Identifier

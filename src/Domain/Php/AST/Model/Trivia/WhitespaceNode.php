@@ -10,12 +10,12 @@ use TimLappe\Elephactor\Domain\Php\AST\Model\Node;
 use TimLappe\Elephactor\Domain\Php\AST\Model\NodeKind;
 use TimLappe\Elephactor\Domain\Php\AST\Model\StatementNode;
 
-final class WhitespaceNode extends AbstractNode implements StatementNode, MemberNode
+final readonly class WhitespaceNode extends AbstractNode implements StatementNode, MemberNode
 {
     public function __construct(
         private readonly int $lineBreaks
     ) {
-        parent::__construct(NodeKind::WHITESPACE);
+        parent::__construct();
 
         if ($lineBreaks < 1) {
             throw new \InvalidArgumentException('Whitespace nodes require at least one line break');

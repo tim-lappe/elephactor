@@ -9,7 +9,7 @@ use TimLappe\Elephactor\Domain\Php\AST\Model\Node;
 use TimLappe\Elephactor\Domain\Php\AST\Model\NodeKind;
 use TimLappe\Elephactor\Domain\Php\AST\Model\StatementNode;
 
-final class DeclareStatementNode extends AbstractNode implements StatementNode
+final readonly class DeclareStatementNode extends AbstractNode implements StatementNode
 {
     /**
      * @param list<DeclareDirectiveNode> $directives
@@ -28,7 +28,7 @@ final class DeclareStatementNode extends AbstractNode implements StatementNode
             throw new \InvalidArgumentException('Declare statement cannot have both block and single statement');
         }
 
-        parent::__construct(NodeKind::DECLARE_STATEMENT);
+        parent::__construct();
     }
 
     /**

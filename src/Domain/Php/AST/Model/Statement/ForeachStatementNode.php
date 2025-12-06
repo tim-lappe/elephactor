@@ -6,38 +6,53 @@ namespace TimLappe\Elephactor\Domain\Php\AST\Model\Statement;
 
 use TimLappe\Elephactor\Domain\Php\AST\Model\AbstractNode;
 use TimLappe\Elephactor\Domain\Php\AST\Model\ExpressionNode;
-use TimLappe\Elephactor\Domain\Php\AST\Model\Node;
-use TimLappe\Elephactor\Domain\Php\AST\Model\NodeKind;
 use TimLappe\Elephactor\Domain\Php\AST\Model\StatementNode;
 
-final class ForeachStatementNode extends AbstractNode implements StatementNode
+final readonly class ForeachStatementNode extends AbstractNode implements StatementNode
 {
+    private bool $hasKey;
+    private int $statementsOffset;
     /**
      * @param list<StatementNode> $statements
      */
     public function __construct(
-        private readonly ExpressionNode $source,
-        private readonly ExpressionNode $value,
-        private readonly ?ExpressionNode $key = null,
+        ExpressionNode $source,
+        ExpressionNode $value,
+        ?ExpressionNode $key = null,
         private readonly bool $byReference = false,
-        private readonly array $statements = []
+        array $statements = []
     ) {
-        parent::__construct(NodeKind::FOREACH_STATEMENT);
+        parent::__construct();
+
+        $this->hasKey = $key !== null;
+        $this->statementsOffset = $this->hasKey ? 3 : 2;
+
+        $this->children()->add($source);
+
+        if ($key !== null) {
+            $this->children()->add($key);
+        }
+
+        $this->children()->add($value);
+
+        foreach ($statements as $statement) {
+            $this->children()->add($statement);
+        }
     }
 
     public function source(): ExpressionNode
     {
-        return $this->source;
+        return $this->children()->toArray()[0] ?? throw new \RuntimeException('Foreach source missing');
     }
 
     public function key(): ?ExpressionNode
     {
-        return $this->key;
+        return $this->hasKey ? $this->children()->toArray()[1] : null;
     }
 
     public function value(): ExpressionNode
     {
-        return $this->value;
+        return $this->children()->toArray()[$this->hasKey ? 2 : 1] ?? throw new \RuntimeException('Foreach value missing');
     }
 
     public function iteratesByReference(): bool
@@ -50,27 +65,9 @@ final class ForeachStatementNode extends AbstractNode implements StatementNode
      */
     public function statements(): array
     {
-        return $this->statements;
-    }
-
-    /**
-     * @return list<Node>
-     */
-    public function children(): array
-    {
-        $children = [
-            $this->source,
-        ];
-
-        if ($this->key !== null) {
-            $children[] = $this->key;
-        }
-
-        $children[] = $this->value;
-
-        return [
-            ...$children,
-            ...$this->statements,
-        ];
+        return array_slice(
+            $this->children()->toArray(),
+            $this->statementsOffset,
+        );
     }
 }
