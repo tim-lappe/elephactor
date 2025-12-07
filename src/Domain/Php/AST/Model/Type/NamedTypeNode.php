@@ -9,20 +9,17 @@ use TimLappe\Elephactor\Domain\Php\AST\Model\Name\QualifiedNameNode;
 use TimLappe\Elephactor\Domain\Php\AST\Model\TypeNode;
 use TimLappe\Elephactor\Domain\Php\AST\Model\Value\QualifiedName;
 
-final readonly class NamedTypeNode extends AbstractNode implements TypeNode
+final class NamedTypeNode extends AbstractNode implements TypeNode
 {
-    private QualifiedNameNode $nameNode;
-
     public function __construct(
         QualifiedName $name
     ) {
         parent::__construct();
-        $this->nameNode = new QualifiedNameNode($name);
-        $this->children()->add($this->nameNode);
+        $this->children()->add('name', new QualifiedNameNode($name));
     }
 
     public function name(): QualifiedNameNode
     {
-        return $this->nameNode;
+        return $this->children()->getOne('name', QualifiedNameNode::class) ?? throw new \RuntimeException('Name not found');
     }
 }

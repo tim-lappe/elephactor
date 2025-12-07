@@ -31,11 +31,6 @@ final class NikicMemberMapper implements MemberMapper
         $result = [];
 
         foreach ($members as $member) {
-            if ($member instanceof WhitespaceNode) {
-                $result[] = $this->buildWhitespaceStatement($member);
-                continue;
-            }
-
             $result[] = $this->buildMember($member);
         }
 
@@ -210,13 +205,5 @@ final class NikicMemberMapper implements MemberMapper
         if ($doc !== null) {
             $node->setDocComment($doc);
         }
-    }
-
-    private function buildWhitespaceStatement(WhitespaceNode $whitespace): Stmt\Nop
-    {
-        $nop = new Stmt\Nop();
-        WhitespaceAttribute::set($nop, $whitespace->lineBreaks());
-
-        return $nop;
     }
 }

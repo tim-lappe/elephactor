@@ -6,17 +6,17 @@ namespace TimLappe\Elephactor\Domain\Php\AST\Model\Expression;
 
 use TimLappe\Elephactor\Domain\Php\AST\Model\AbstractNode;
 use TimLappe\Elephactor\Domain\Php\AST\Model\ExpressionNode;
-use TimLappe\Elephactor\Domain\Php\AST\Model\Node;
-use TimLappe\Elephactor\Domain\Php\AST\Model\NodeKind;
 use TimLappe\Elephactor\Domain\Php\AST\Model\Value\UnaryOperator;
 
-final readonly class UnaryExpressionNode extends AbstractNode implements ExpressionNode
+final class UnaryExpressionNode extends AbstractNode implements ExpressionNode
 {
     public function __construct(
         private readonly UnaryOperator $operator,
-        private readonly ExpressionNode $operand
+        ExpressionNode $operand
     ) {
         parent::__construct();
+
+        $this->children()->add('operand', $operand);
     }
 
     public function operator(): UnaryOperator
@@ -26,14 +26,7 @@ final readonly class UnaryExpressionNode extends AbstractNode implements Express
 
     public function operand(): ExpressionNode
     {
-        return $this->operand;
+        return $this->children()->getOne('operand', ExpressionNode::class) ?? throw new \RuntimeException('Operand not found');
     }
 
-    /**
-     * @return list<Node>
-     */
-    public function children(): array
-    {
-        return [$this->operand];
-    }
 }

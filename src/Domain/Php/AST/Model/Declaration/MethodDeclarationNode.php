@@ -15,7 +15,7 @@ use TimLappe\Elephactor\Domain\Php\AST\Model\Value\DocBlock;
 use TimLappe\Elephactor\Domain\Php\AST\Model\Value\Identifier;
 use TimLappe\Elephactor\Domain\Php\AST\Model\Value\MethodModifiers;
 
-final readonly class MethodDeclarationNode extends AbstractNode implements MemberNode
+final class MethodDeclarationNode extends AbstractNode implements MemberNode
 {
     /**
      * @param list<AttributeGroupNode> $attributes

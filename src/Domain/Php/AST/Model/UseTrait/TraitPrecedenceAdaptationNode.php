@@ -8,7 +8,7 @@ use TimLappe\Elephactor\Domain\Php\AST\Model\AbstractNode;
 use TimLappe\Elephactor\Domain\Php\AST\Model\Value\Identifier;
 use TimLappe\Elephactor\Domain\Php\AST\Model\Value\QualifiedName;
 
-final readonly class TraitPrecedenceAdaptationNode extends AbstractNode implements TraitAdaptationNode
+final class TraitPrecedenceAdaptationNode extends AbstractNode implements TraitAdaptationNode
 {
     /**
      * @param list<QualifiedName> $insteadOf
@@ -31,21 +31,21 @@ final readonly class TraitPrecedenceAdaptationNode extends AbstractNode implemen
             $insteadOf,
         );
 
-        $this->children()->add($originatingTrait);
-        $this->children()->add($method);
+        $this->children()->add('originatingTrait', $originatingTrait);
+        $this->children()->add('method', $method);
         foreach ($insteadOf as $insteadOfTrait) {
-            $this->children()->add($insteadOfTrait);
+            $this->children()->add('insteadOfTrait', $insteadOfTrait);
         }
     }
 
     public function originatingTrait(): TraitQualifiedNameNode
     {
-        return $this->children()->firstOfType(TraitQualifiedNameNode::class) ?? throw new \RuntimeException('Trait originating trait not found');
+        return $this->children()->getOne('originatingTrait', TraitQualifiedNameNode::class) ?? throw new \RuntimeException('Trait originating trait not found');
     }
 
     public function method(): TraitMethodIdentifierNode
     {
-        return $this->children()->firstOfType(TraitMethodIdentifierNode::class) ?? throw new \RuntimeException('Trait method not found');
+        return $this->children()->getOne('method', TraitMethodIdentifierNode::class) ?? throw new \RuntimeException('Trait method not found');
     }
 
     /**
@@ -53,6 +53,6 @@ final readonly class TraitPrecedenceAdaptationNode extends AbstractNode implemen
      */
     public function insteadOf(): array
     {
-        return $this->children()->filterTypeToArray(TraitInsteadOfQualifiedNameNode::class);
+        return $this->children()->getAllOf('insteadOfTrait', TraitInsteadOfQualifiedNameNode::class);
     }
 }

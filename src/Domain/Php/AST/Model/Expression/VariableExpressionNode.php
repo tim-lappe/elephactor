@@ -11,19 +11,19 @@ use TimLappe\Elephactor\Domain\Php\AST\Model\Value\Identifier;
 
 final class VariableExpressionNode extends AbstractNode implements ExpressionNode
 {
-    private IdentifierNode|ExpressionNode $name;
-
     public function __construct(
         Identifier|ExpressionNode $name
     ) {
         parent::__construct();
 
-        $this->name = $name instanceof Identifier ? new IdentifierNode($name) : $name;
-        $this->children()->add($this->name);
+        $nameNode = $name instanceof Identifier ? new IdentifierNode($name) : $name;
+        $this->children()->add('name', $nameNode);
     }
 
     public function name(): IdentifierNode|ExpressionNode
     {
-        return $this->name;
+        return $this->children()->getOne('name', IdentifierNode::class)
+            ?? $this->children()->getOne('name', ExpressionNode::class)
+            ?? throw new \RuntimeException('Variable name not found');
     }
 }

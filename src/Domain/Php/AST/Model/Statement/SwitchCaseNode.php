@@ -8,10 +8,8 @@ use TimLappe\Elephactor\Domain\Php\AST\Model\AbstractNode;
 use TimLappe\Elephactor\Domain\Php\AST\Model\ExpressionNode;
 use TimLappe\Elephactor\Domain\Php\AST\Model\StatementNode;
 
-final readonly class SwitchCaseNode extends AbstractNode
+final class SwitchCaseNode extends AbstractNode
 {
-    private bool $hasCondition;
-    private int $statementsOffset;
     /**
      * @param list<StatementNode> $statements
      */
@@ -21,26 +19,23 @@ final readonly class SwitchCaseNode extends AbstractNode
     ) {
         parent::__construct();
 
-        $this->hasCondition = $condition !== null;
-        $this->statementsOffset = $this->hasCondition ? 1 : 0;
-
         if ($condition !== null) {
-            $this->children()->add($condition);
+            $this->children()->add('condition', $condition);
         }
 
         foreach ($statements as $statement) {
-            $this->children()->add($statement);
+            $this->children()->add('statement', $statement);
         }
     }
 
     public function condition(): ?ExpressionNode
     {
-        return $this->hasCondition ? $this->children()->toArray()[0] : null;
+        return $this->children()->getOne('condition', ExpressionNode::class);
     }
 
     public function isDefault(): bool
     {
-        return $this->hasCondition === false;
+        return $this->children()->getOne('condition', ExpressionNode::class) === null;
     }
 
     /**
@@ -48,9 +43,6 @@ final readonly class SwitchCaseNode extends AbstractNode
      */
     public function statements(): array
     {
-        return array_slice(
-            $this->children()->toArray(),
-            $this->statementsOffset,
-        );
+        return $this->children()->getAllOf('statement', StatementNode::class);
     }
 }

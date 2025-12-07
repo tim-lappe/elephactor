@@ -6,20 +6,17 @@ namespace TimLappe\Elephactor\Domain\Php\AST\Model\Statement;
 
 use TimLappe\Elephactor\Domain\Php\AST\Model\AbstractNode;
 use TimLappe\Elephactor\Domain\Php\AST\Model\Name\QualifiedNameNode;
-use TimLappe\Elephactor\Domain\Php\AST\Model\Node;
-use TimLappe\Elephactor\Domain\Php\AST\Model\NodeKind;
 use TimLappe\Elephactor\Domain\Php\AST\Model\StatementNode;
 use TimLappe\Elephactor\Domain\Php\AST\Model\Value\Identifier;
 use TimLappe\Elephactor\Domain\Php\AST\Model\Value\QualifiedName;
 
-final readonly class UseStatementNode extends AbstractNode implements StatementNode
+final class UseStatementNode extends AbstractNode implements StatementNode
 {
-    private ?QualifiedNameNode $groupPrefix;
     /**
      * @param list<UseClauseNode> $clauses
      */
     public function __construct(
-        private readonly array $clauses,
+        array $clauses,
         private readonly UseKind $kind = UseKind::CLASS_IMPORT,
         ?QualifiedName $groupPrefix = null,
     ) {
@@ -29,7 +26,15 @@ final readonly class UseStatementNode extends AbstractNode implements StatementN
 
         parent::__construct();
 
-        $this->groupPrefix = $groupPrefix !== null ? new QualifiedNameNode($groupPrefix, $this) : null;
+        $groupPrefixNode = $groupPrefix !== null ? new QualifiedNameNode($groupPrefix) : null;
+
+        foreach ($clauses as $clause) {
+            $this->children()->add('clause', $clause);
+        }
+
+        if ($groupPrefixNode !== null) {
+            $this->children()->add('groupPrefix', $groupPrefixNode);
+        }
     }
 
     public function useKind(): UseKind
@@ -39,7 +44,7 @@ final readonly class UseStatementNode extends AbstractNode implements StatementN
 
     public function importsClassIdentifier(Identifier $classIdentifier): bool
     {
-        foreach ($this->clauses as $clause) {
+        foreach ($this->children()->getAllOf('clause', UseClauseNode::class) as $clause) {
             $qualifiedName = $clause->name()->qualifiedName();
             if ($classIdentifier->equals($qualifiedName->lastPart())) {
                 return true;
@@ -55,34 +60,46 @@ final readonly class UseStatementNode extends AbstractNode implements StatementN
     }
 
     /**
+     * @return list<Identifier>
+     */
+    public function identifiersImported(): array
+    {
+        $clauses = $this->clauses();
+        $identifiers = [];
+
+        foreach ($clauses as $clause) {
+            $alias = $clause->alias();
+            if ($alias !== null) {
+                $identifiers[] = $alias->identifier();
+                continue;
+            }
+
+            $identifiers[] = $clause->name()->qualifiedName()->lastPart();
+        }
+
+        return $identifiers;
+    }
+
+    /**
      * @return list<UseClauseNode>
      */
     public function clauses(): array
     {
-        return $this->clauses;
+        return $this->children()->getAllOf('clause', UseClauseNode::class);
     }
 
     public function groupPrefix(): ?QualifiedNameNode
     {
-        return $this->groupPrefix;
+        return $this->children()->getOne('groupPrefix', QualifiedNameNode::class);
     }
 
     public function isGroupImport(): bool
     {
-        return $this->groupPrefix !== null;
+        return $this->children()->getOne('groupPrefix', QualifiedNameNode::class) !== null;
     }
 
-    /**
-     * @return list<Node>
-     */
-    public function children(): array
+    public function removeGroupPrefix(): void
     {
-        $children = $this->clauses;
-
-        if ($this->groupPrefix !== null) {
-            $children[] = $this->groupPrefix;
-        }
-
-        return $children;
+        $this->children()->remove('groupPrefix');
     }
 }

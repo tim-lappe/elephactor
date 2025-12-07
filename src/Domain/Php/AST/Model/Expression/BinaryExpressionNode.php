@@ -6,18 +6,19 @@ namespace TimLappe\Elephactor\Domain\Php\AST\Model\Expression;
 
 use TimLappe\Elephactor\Domain\Php\AST\Model\AbstractNode;
 use TimLappe\Elephactor\Domain\Php\AST\Model\ExpressionNode;
-use TimLappe\Elephactor\Domain\Php\AST\Model\Node;
-use TimLappe\Elephactor\Domain\Php\AST\Model\NodeKind;
 use TimLappe\Elephactor\Domain\Php\AST\Model\Value\BinaryOperator;
 
-final readonly class BinaryExpressionNode extends AbstractNode implements ExpressionNode
+final class BinaryExpressionNode extends AbstractNode implements ExpressionNode
 {
     public function __construct(
         private readonly BinaryOperator $operator,
-        private readonly ExpressionNode $left,
-        private readonly ExpressionNode $right
+        ExpressionNode $left,
+        ExpressionNode $right
     ) {
         parent::__construct();
+
+        $this->children()->add('left', $left);
+        $this->children()->add('right', $right);
     }
 
     public function operator(): BinaryOperator
@@ -27,22 +28,12 @@ final readonly class BinaryExpressionNode extends AbstractNode implements Expres
 
     public function left(): ExpressionNode
     {
-        return $this->left;
+        return $this->children()->getOne('left', ExpressionNode::class) ?? throw new \RuntimeException('Left operand not found');
     }
 
     public function right(): ExpressionNode
     {
-        return $this->right;
+        return $this->children()->getOne('right', ExpressionNode::class) ?? throw new \RuntimeException('Right operand not found');
     }
 
-    /**
-     * @return list<Node>
-     */
-    public function children(): array
-    {
-        return [
-            $this->left,
-            $this->right,
-        ];
-    }
 }

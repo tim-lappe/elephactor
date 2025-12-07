@@ -8,5 +8,5 @@ interface RefactoringExecutor
 {
     public function supports(RefactoringCommand $command): bool;
 
-    public function handle(RefactoringCommand $command): void;
+    public function handle(RefactoringCommand $command, bool $dryRun = false): RefactoringReport;
 }

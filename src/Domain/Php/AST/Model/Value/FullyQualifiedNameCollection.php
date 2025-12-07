@@ -11,7 +11,8 @@ final class FullyQualifiedNameCollection
      */
     public function __construct(
         private array $fullyQualifiedNames = [],
-    ) {}
+    ) {
+    }
 
     public function add(FullyQualifiedName $fullyQualifiedName): void
     {

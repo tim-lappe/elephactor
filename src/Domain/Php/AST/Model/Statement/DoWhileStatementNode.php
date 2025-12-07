@@ -6,25 +6,29 @@ namespace TimLappe\Elephactor\Domain\Php\AST\Model\Statement;
 
 use TimLappe\Elephactor\Domain\Php\AST\Model\AbstractNode;
 use TimLappe\Elephactor\Domain\Php\AST\Model\ExpressionNode;
-use TimLappe\Elephactor\Domain\Php\AST\Model\Node;
-use TimLappe\Elephactor\Domain\Php\AST\Model\NodeKind;
 use TimLappe\Elephactor\Domain\Php\AST\Model\StatementNode;
 
-final readonly class DoWhileStatementNode extends AbstractNode implements StatementNode
+final class DoWhileStatementNode extends AbstractNode implements StatementNode
 {
     /**
      * @param list<StatementNode> $statements
      */
     public function __construct(
-        private readonly ExpressionNode $condition,
-        private readonly array $statements
+        ExpressionNode $condition,
+        array $statements
     ) {
         parent::__construct();
+
+        foreach ($statements as $statement) {
+            $this->children()->add('statement', $statement);
+        }
+
+        $this->children()->add('condition', $condition);
     }
 
     public function condition(): ExpressionNode
     {
-        return $this->condition;
+        return $this->children()->getOne('condition', ExpressionNode::class) ?? throw new \RuntimeException('Condition not found');
     }
 
     /**
@@ -32,17 +36,6 @@ final readonly class DoWhileStatementNode extends AbstractNode implements Statem
      */
     public function statements(): array
     {
-        return $this->statements;
-    }
-
-    /**
-     * @return list<Node>
-     */
-    public function children(): array
-    {
-        return [
-            ...$this->statements,
-            $this->condition,
-        ];
+        return $this->children()->getAllOf('statement', StatementNode::class);
     }
 }

@@ -8,7 +8,6 @@ use PhpParser\Node;
 use PhpParser\Node\Name;
 use PhpParser\Node\Stmt;
 use TimLappe\Elephactor\Domain\Php\AST\Model as Ast;
-use TimLappe\Elephactor\Domain\Php\AST\Model\Trivia\WhitespaceNode;
 
 final class MemberMapper
 {
@@ -25,21 +24,9 @@ final class MemberMapper
     public function mapClassMembers(array $members): array
     {
         $result = [];
-        $previousEndLine = null;
 
         foreach ($members as $member) {
-            $lineBreaks = $this->calculateLineBreaks($previousEndLine, $member);
-            if ($lineBreaks > 0) {
-                $result[] = new WhitespaceNode($lineBreaks);
-            }
-
-            if ($member instanceof Stmt\Nop) {
-                $previousEndLine = $this->resolveEndLine($member);
-                continue;
-            }
-
             $result[] = $this->mapMember($member);
-            $previousEndLine = $this->resolveEndLine($member);
         }
 
         return $result;
@@ -198,31 +185,5 @@ final class MemberMapper
                 $precedence->insteadof,
             )),
         );
-    }
-
-    private function calculateLineBreaks(?int $previousEndLine, Node\Stmt $current): int
-    {
-        $startLine = $this->resolveStartLine($current);
-        if ($previousEndLine === null || $startLine === null) {
-            return 0;
-        }
-
-        $lineBreaks = $startLine - $previousEndLine - 1;
-
-        return $lineBreaks > 0 ? $lineBreaks : 0;
-    }
-
-    private function resolveStartLine(Node $node): ?int
-    {
-        $line = $node->getStartLine();
-
-        return $line > 0 ? $line : null;
-    }
-
-    private function resolveEndLine(Node $node): ?int
-    {
-        $line = $node->getEndLine();
-
-        return $line > 0 ? $line : null;
     }
 }

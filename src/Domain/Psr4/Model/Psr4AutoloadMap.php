@@ -4,10 +4,9 @@ declare(strict_types=1);
 
 namespace TimLappe\Elephactor\Domain\Psr4\Model;
 
-use TimLappe\Elephactor\Domain\Php\Analysis\Model\ValueObjects\PhpNamespace;
 use TimLappe\Elephactor\Domain\Workspace\Model\Filesystem\Directory;
-use TimLappe\Elephactor\Domain\Php\AST\Model\Value\FullyQualifiedName;
 use TimLappe\Elephactor\Domain\Php\AST\Model\Value\Identifier;
+use TimLappe\Elephactor\Domain\Php\AST\Model\Value\QualifiedName;
 
 final class Psr4AutoloadMap
 {
@@ -16,12 +15,19 @@ final class Psr4AutoloadMap
      */
     private array $items = [];
 
-    public function add(PhpNamespace $namespace, Directory $directory): void
+    public function add(QualifiedName $namespace, Directory $directory): void
     {
         $this->items[] = new Psr4AutoloadMapItem($namespace, $directory);
     }
 
-    public function getItemForNamespace(PhpNamespace $namespace): Psr4AutoloadMapItem
+    public function merge(Psr4AutoloadMap $autoloadMap): void
+    {
+        foreach ($autoloadMap->items as $item) {
+            $this->add($item->namespace(), $item->directory());
+        }
+    }
+
+    public function getItemForNamespace(QualifiedName $namespace): Psr4AutoloadMapItem
     {
         foreach ($this->items as $key => $item) {
             if ($item->namespace()->equals($namespace)) {
@@ -29,7 +35,7 @@ final class Psr4AutoloadMap
             }
         }
 
-        throw new \InvalidArgumentException(sprintf('Namespace %s not found', $namespace->name()));
+        throw new \InvalidArgumentException(sprintf('Namespace %s not found', $namespace->__toString()));
     }
 
     public function getItemForDirectory(Directory $directory): Psr4AutoloadMapItem
@@ -43,15 +49,15 @@ final class Psr4AutoloadMap
         throw new \InvalidArgumentException(sprintf('Directory %s not found', $directory->name()));
     }
 
-    public function resolveNamespaceForDirectory(Directory $directory): ?PhpNamespace
+    public function resolveNamespaceForDirectory(Directory $directory): ?QualifiedName
     {
-        $currentNamespace = new PhpNamespace(new FullyQualifiedName([new Identifier($directory->name())]));
+        $currentNamespace = new QualifiedName([new Identifier($directory->name())]);
         $currentDirectory = $directory;
 
         while (true) {
             foreach ($this->items as $item) {
                 if ($item->directory()->equals($currentDirectory)) {
-                    return $currentNamespace->removeFirstPart()->prependNamespace($item->namespace());
+                    return $currentNamespace->removeFirstPart()->prepend($item->namespace()->lastPart());
                 }
             }
 
@@ -76,7 +82,7 @@ final class Psr4AutoloadMap
     public function printDebug(): void
     {
         foreach ($this->items as $item) {
-            echo 'Directory: ' . $item->directory()->name() . ' Namespace: ' . $item->namespace()->name() . PHP_EOL;
+            echo 'Directory: ' . $item->directory()->name() . ' Namespace: ' . $item->namespace()->__toString() . PHP_EOL;
         }
     }
 }

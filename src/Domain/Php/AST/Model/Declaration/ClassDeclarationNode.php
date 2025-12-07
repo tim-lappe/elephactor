@@ -15,7 +15,7 @@ use TimLappe\Elephactor\Domain\Php\AST\Model\Value\DocBlock;
 use TimLappe\Elephactor\Domain\Php\AST\Model\Value\Identifier;
 use TimLappe\Elephactor\Domain\Php\AST\Model\Value\QualifiedName;
 
-final readonly class ClassDeclarationNode extends AbstractNode implements ClassLikeNode
+final class ClassDeclarationNode extends AbstractNode implements ClassLikeNode
 {
     /**
      * @param list<AttributeGroupNode> $attributes

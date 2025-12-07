@@ -6,19 +6,20 @@ namespace TimLappe\Elephactor\Domain\Php\AST\Model\Attribute;
 
 use TimLappe\Elephactor\Domain\Php\AST\Model\AbstractNode;
 use TimLappe\Elephactor\Domain\Php\AST\Model\Name\QualifiedNameNode;
+use TimLappe\Elephactor\Domain\Php\AST\Model\Value\QualifiedName;
 
-final readonly class AttributeNode extends AbstractNode
+final class AttributeNode extends AbstractNode
 {
     /**
      * @param list<AttributeArgumentNode> $arguments
      */
     public function __construct(
-        QualifiedNameNode $name,
+        QualifiedName $name,
         array $arguments = []
     ) {
         parent::__construct();
 
-        $this->children()->add("name", $name);
+        $this->children()->add("name", new QualifiedNameNode($name));
 
         foreach ($arguments as $argument) {
             $this->children()->add("argument", $argument);

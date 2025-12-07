@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace TimLappe\Elephactor\Domain\Php\AST\Model;
 
-final readonly class NodeCollectionItem
+final class NodeCollectionItem
 {
     public function __construct(
         public string $key,

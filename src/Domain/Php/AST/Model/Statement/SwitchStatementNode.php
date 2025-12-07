@@ -8,9 +8,8 @@ use TimLappe\Elephactor\Domain\Php\AST\Model\AbstractNode;
 use TimLappe\Elephactor\Domain\Php\AST\Model\ExpressionNode;
 use TimLappe\Elephactor\Domain\Php\AST\Model\StatementNode;
 
-final readonly class SwitchStatementNode extends AbstractNode implements StatementNode
+final class SwitchStatementNode extends AbstractNode implements StatementNode
 {
-    private int $casesCount;
     /**
      * @param list<SwitchCaseNode> $cases
      */
@@ -20,18 +19,16 @@ final readonly class SwitchStatementNode extends AbstractNode implements Stateme
     ) {
         parent::__construct();
 
-        $this->casesCount = count($cases);
-
-        $this->children()->add($expression);
+        $this->children()->add('expression', $expression);
 
         foreach ($cases as $case) {
-            $this->children()->add($case);
+            $this->children()->add('case', $case);
         }
     }
 
     public function expression(): ExpressionNode
     {
-        return $this->children()->toArray()[0] ?? throw new \RuntimeException('Switch expression missing');
+        return $this->children()->getOne('expression', ExpressionNode::class) ?? throw new \RuntimeException('Switch expression missing');
     }
 
     /**
@@ -39,10 +36,6 @@ final readonly class SwitchStatementNode extends AbstractNode implements Stateme
      */
     public function cases(): array
     {
-        return array_slice(
-            $this->children()->toArray(),
-            1,
-            $this->casesCount,
-        );
+        return $this->children()->getAllOf('case', SwitchCaseNode::class);
     }
 }

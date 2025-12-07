@@ -12,8 +12,6 @@ use TimLappe\Elephactor\Domain\Php\AST\Model as Ast;
 use TimLappe\Elephactor\Domain\Php\AST\Model\Statement\DeclareDirectiveNode;
 use TimLappe\Elephactor\Domain\Php\AST\Model\Statement\StaticVariableNode;
 use TimLappe\Elephactor\Domain\Php\AST\Model\Statement\UseClauseNode;
-use TimLappe\Elephactor\Domain\Php\AST\Model\Trivia\WhitespaceNode;
-use TimLappe\Elephactor\Adapter\Php\Ast\Nikic\WhitespaceAttribute;
 use TimLappe\Elephactor\Domain\Php\AST\Model\Value\DocBlock;
 
 final class NikicStatementMapper implements StatementMapper
@@ -35,11 +33,6 @@ final class NikicStatementMapper implements StatementMapper
         $result = [];
 
         foreach ($statements as $statement) {
-            if ($statement instanceof WhitespaceNode) {
-                $result[] = $this->buildWhitespaceStatement($statement);
-                continue;
-            }
-
             foreach ($this->buildStatement($statement) as $built) {
                 $result[] = $built;
             }
@@ -498,7 +491,7 @@ final class NikicStatementMapper implements StatementMapper
     private function buildDeclareDirective(DeclareDirectiveNode $directive): Node\DeclareItem
     {
         return new Node\DeclareItem(
-            $this->valueMapper->buildIdentifier($directive->name()),
+            $this->valueMapper->buildIdentifier($directive->name()->identifier()),
             $this->expressionMapper->buildExpression($directive->value()),
         );
     }
@@ -529,13 +522,5 @@ final class NikicStatementMapper implements StatementMapper
         if ($doc !== null) {
             $node->setDocComment($doc);
         }
-    }
-
-    private function buildWhitespaceStatement(WhitespaceNode $whitespace): Stmt\Nop
-    {
-        $nop = new Stmt\Nop();
-        WhitespaceAttribute::set($nop, $whitespace->lineBreaks());
-
-        return $nop;
     }
 }

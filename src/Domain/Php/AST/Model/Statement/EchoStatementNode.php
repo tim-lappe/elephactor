@@ -8,7 +8,7 @@ use TimLappe\Elephactor\Domain\Php\AST\Model\AbstractNode;
 use TimLappe\Elephactor\Domain\Php\AST\Model\ExpressionNode;
 use TimLappe\Elephactor\Domain\Php\AST\Model\StatementNode;
 
-final readonly class EchoStatementNode extends AbstractNode implements StatementNode
+final class EchoStatementNode extends AbstractNode implements StatementNode
 {
     /**
      * @param list<ExpressionNode> $expressions
@@ -23,7 +23,7 @@ final readonly class EchoStatementNode extends AbstractNode implements Statement
         parent::__construct();
 
         foreach ($expressions as $expression) {
-            $this->children()->add($expression);
+            $this->children()->add('expression', $expression);
         }
     }
 
@@ -32,6 +32,6 @@ final readonly class EchoStatementNode extends AbstractNode implements Statement
      */
     public function expressions(): array
     {
-        return $this->children()->filterTypeToArray(ExpressionNode::class);
+        return $this->children()->getAllOf('expression', ExpressionNode::class);
     }
 }

@@ -10,38 +10,39 @@ use TimLappe\Elephactor\Domain\Php\AST\Model\Name\IdentifierNode;
 use TimLappe\Elephactor\Domain\Php\AST\Model\ExpressionNode;
 use TimLappe\Elephactor\Domain\Php\AST\Model\Value\Identifier;
 
-final readonly class MethodCallExpressionNode extends AbstractNode implements ExpressionNode
+final class MethodCallExpressionNode extends AbstractNode implements ExpressionNode
 {
-    private IdentifierNode|ExpressionNode $method;
     /**
      * @param list<ArgumentNode> $arguments
      */
     public function __construct(
-        private readonly ExpressionNode $object,
+        ExpressionNode $object,
         Identifier|ExpressionNode $method,
-        private readonly array $arguments,
+        array $arguments,
         private readonly bool $nullsafe = false
     ) {
         parent::__construct();
 
-        $this->method = $method instanceof Identifier ? new IdentifierNode($method) : $method;
+        $methodNode = $method instanceof Identifier ? new IdentifierNode($method) : $method;
 
-        $this->children()->add($this->object);
-        $this->children()->add($this->method);
+        $this->children()->add('object', $object);
+        $this->children()->add('method', $methodNode);
 
-        foreach ($this->arguments as $argument) {
-            $this->children()->add($argument);
+        foreach ($arguments as $argument) {
+            $this->children()->add('argument', $argument);
         }
     }
 
     public function object(): ExpressionNode
     {
-        return $this->object;
+        return $this->children()->getOne('object', ExpressionNode::class) ?? throw new \RuntimeException('Object expression not found');
     }
 
     public function method(): IdentifierNode|ExpressionNode
     {
-        return $this->method;
+        return $this->children()->getOne('method', IdentifierNode::class)
+            ?? $this->children()->getOne('method', ExpressionNode::class)
+            ?? throw new \RuntimeException('Method not found');
     }
 
     public function isNullsafe(): bool
@@ -54,6 +55,6 @@ final readonly class MethodCallExpressionNode extends AbstractNode implements Ex
      */
     public function arguments(): array
     {
-        return $this->arguments;
+        return $this->children()->getAllOf('argument', ArgumentNode::class);
     }
 }

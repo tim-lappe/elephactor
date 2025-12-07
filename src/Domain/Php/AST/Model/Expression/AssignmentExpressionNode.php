@@ -6,36 +6,27 @@ namespace TimLappe\Elephactor\Domain\Php\AST\Model\Expression;
 
 use TimLappe\Elephactor\Domain\Php\AST\Model\AbstractNode;
 use TimLappe\Elephactor\Domain\Php\AST\Model\ExpressionNode;
-use TimLappe\Elephactor\Domain\Php\AST\Model\Node;
-use TimLappe\Elephactor\Domain\Php\AST\Model\NodeKind;
 
-final readonly class AssignmentExpressionNode extends AbstractNode implements ExpressionNode
+final class AssignmentExpressionNode extends AbstractNode implements ExpressionNode
 {
     public function __construct(
-        private readonly ExpressionNode $target,
-        private readonly ExpressionNode $value
+        ExpressionNode $target,
+        ExpressionNode $value
     ) {
         parent::__construct();
+
+        $this->children()->add('target', $target);
+        $this->children()->add('value', $value);
     }
 
     public function target(): ExpressionNode
     {
-        return $this->target;
+        return $this->children()->getOne('target', ExpressionNode::class) ?? throw new \RuntimeException('Target expression not found');
     }
 
     public function value(): ExpressionNode
     {
-        return $this->value;
+        return $this->children()->getOne('value', ExpressionNode::class) ?? throw new \RuntimeException('Value expression not found');
     }
 
-    /**
-     * @return list<Node>
-     */
-    public function children(): array
-    {
-        return [
-            $this->target,
-            $this->value,
-        ];
-    }
 }

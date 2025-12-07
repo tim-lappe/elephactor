@@ -6,30 +6,31 @@ namespace TimLappe\Elephactor\Domain\Php\AST\Model\Statement;
 
 use TimLappe\Elephactor\Domain\Php\AST\Model\AbstractNode;
 use TimLappe\Elephactor\Domain\Php\AST\Model\Name\QualifiedNameNode;
-use TimLappe\Elephactor\Domain\Php\AST\Model\Node;
-use TimLappe\Elephactor\Domain\Php\AST\Model\NodeKind;
 use TimLappe\Elephactor\Domain\Php\AST\Model\StatementNode;
 use TimLappe\Elephactor\Domain\Php\AST\Model\Value\QualifiedName;
 
-final readonly class NamespaceDefinitionNode extends AbstractNode implements StatementNode
+final class NamespaceDefinitionNode extends AbstractNode implements StatementNode
 {
-    private QualifiedNameNode $name;
     /**
      * @param list<StatementNode> $statements
      */
     public function __construct(
         QualifiedName $name,
-        private readonly array $statements,
+        array $statements,
         private readonly bool $bracketed = false
     ) {
         parent::__construct();
 
-        $this->name = new QualifiedNameNode($name, $this);
+        $this->children()->add('name', new QualifiedNameNode($name));
+
+        foreach ($statements as $statement) {
+            $this->children()->add('statement', $statement);
+        }
     }
 
     public function name(): QualifiedNameNode
     {
-        return $this->name;
+        return $this->children()->getOne('name', QualifiedNameNode::class) ?? throw new \RuntimeException('Namespace name not found');
     }
 
     public function isBracketed(): bool
@@ -42,18 +43,6 @@ final readonly class NamespaceDefinitionNode extends AbstractNode implements Sta
      */
     public function statements(): array
     {
-        return $this->statements;
-    }
-
-    /**
-     * @return list<Node>
-     */
-    public function children(): array
-    {
-        $children = $this->statements;
-
-        $children[] = $this->name;
-
-        return $children;
+        return $this->children()->getAllOf('statement', StatementNode::class);
     }
 }

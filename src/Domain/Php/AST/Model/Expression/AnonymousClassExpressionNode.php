@@ -13,14 +13,8 @@ use TimLappe\Elephactor\Domain\Php\AST\Model\Value\ClassModifiers;
 use TimLappe\Elephactor\Domain\Php\AST\Model\Value\QualifiedName;
 use TimLappe\Elephactor\Domain\Php\AST\Model\Name\QualifiedNameNode;
 
-final readonly class AnonymousClassExpressionNode extends AbstractNode implements ExpressionNode
+final class AnonymousClassExpressionNode extends AbstractNode implements ExpressionNode
 {
-    private ?QualifiedNameNode $extends = null;
-    /**
-     * @var list<QualifiedNameNode>
-     */
-    private readonly array $interfaces;
-
     /**
      * @param list<ArgumentNode>       $constructorArguments
      * @param list<AttributeGroupNode> $attributes
@@ -28,39 +22,39 @@ final readonly class AnonymousClassExpressionNode extends AbstractNode implement
      * @param list<MemberNode>         $members
      */
     public function __construct(
-        private readonly array $constructorArguments,
-        private readonly array $attributes,
+        array $constructorArguments,
+        array $attributes,
         array $interfaces,
-        private readonly array $members,
+        array $members,
         private readonly ClassModifiers $modifiers = new ClassModifiers(),
         ?QualifiedName $extends = null
     ) {
         parent::__construct();
 
-        $this->extends = $extends !== null ? new QualifiedNameNode($extends) : null;
-        $this->interfaces = array_map(
-            fn (QualifiedName $interface): QualifiedNameNode => new QualifiedNameNode($interface),
-            $interfaces,
+        $extendsNode = $extends !== null ? new QualifiedNameNode($extends) : null;
+        $interfaceNodes = array_map(
+            static fn (QualifiedName $interface): QualifiedNameNode => new QualifiedNameNode($interface),
+            $interfaces
         );
 
-        foreach ($this->attributes as $attribute) {
-            $this->children()->add($attribute);
+        foreach ($attributes as $attribute) {
+            $this->children()->add('attribute', $attribute);
         }
 
-        foreach ($this->constructorArguments as $constructorArgument) {
-            $this->children()->add($constructorArgument);
+        foreach ($constructorArguments as $constructorArgument) {
+            $this->children()->add('constructorArgument', $constructorArgument);
         }
 
-        foreach ($this->members as $member) {
-            $this->children()->add($member);
+        foreach ($members as $member) {
+            $this->children()->add('member', $member);
         }
 
-        foreach ($this->interfaces as $interface) {
-            $this->children()->add($interface);
+        foreach ($interfaceNodes as $interface) {
+            $this->children()->add('interface', $interface);
         }
 
-        if ($this->extends !== null) {
-            $this->children()->add($this->extends);
+        if ($extendsNode !== null) {
+            $this->children()->add('extends', $extendsNode);
         }
     }
 
@@ -69,7 +63,7 @@ final readonly class AnonymousClassExpressionNode extends AbstractNode implement
      */
     public function constructorArguments(): array
     {
-        return $this->constructorArguments;
+        return $this->children()->getAllOf('constructorArgument', ArgumentNode::class);
     }
 
     /**
@@ -77,7 +71,7 @@ final readonly class AnonymousClassExpressionNode extends AbstractNode implement
      */
     public function attributes(): array
     {
-        return $this->attributes;
+        return $this->children()->getAllOf('attribute', AttributeGroupNode::class);
     }
 
     /**
@@ -85,7 +79,7 @@ final readonly class AnonymousClassExpressionNode extends AbstractNode implement
      */
     public function interfaces(): array
     {
-        return $this->interfaces;
+        return $this->children()->getAllOf('interface', QualifiedNameNode::class);
     }
 
     /**
@@ -93,7 +87,7 @@ final readonly class AnonymousClassExpressionNode extends AbstractNode implement
      */
     public function members(): array
     {
-        return $this->members;
+        return $this->children()->getAllOf('member', MemberNode::class);
     }
 
     public function modifiers(): ClassModifiers
@@ -103,6 +97,6 @@ final readonly class AnonymousClassExpressionNode extends AbstractNode implement
 
     public function extends(): ?QualifiedNameNode
     {
-        return $this->extends;
+        return $this->children()->getOne('extends', QualifiedNameNode::class);
     }
 }

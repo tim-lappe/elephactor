@@ -7,7 +7,9 @@ namespace TimLappe\Elephactor\Command;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputArgument;
 use Symfony\Component\Console\Input\InputInterface;
+use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\OutputInterface;
+use Symfony\Component\Console\Style\SymfonyStyle;
 use TimLappe\Elephactor\Application;
 use TimLappe\Elephactor\Domain\Php\AST\Model\Value\Identifier;
 use TimLappe\Elephactor\Domain\Php\Index\ClassIndex\Criteria\ClassNameCriteria;
@@ -21,12 +23,20 @@ class RenameClass extends Command
     {
         $this->setName('class:rename')
             ->setDescription('Rename a class')
+            ->addOption('dry-run', null, InputOption::VALUE_NONE, 'Dry run the command')
             ->addArgument('old-name', InputArgument::REQUIRED, 'The old name of the class')
             ->addArgument('new-name', InputArgument::REQUIRED, 'The new name of the class');
     }
 
     protected function execute(InputInterface $input, OutputInterface $output): int
     {
+        $dryRun = $input->getOption('dry-run');
+        if (!is_bool($dryRun)) {
+            throw new \InvalidArgumentException('Dry run must be a boolean');
+        }
+
+        $io = new SymfonyStyle($input, $output);
+
         $oldName = $input->getArgument('old-name');
         $newName = $input->getArgument('new-name');
 
@@ -49,8 +59,12 @@ class RenameClass extends Command
             throw new \RuntimeException(sprintf('Class %s not found', $oldName));
         }
 
+        $io->info(sprintf('Found class %s', $class->classLikeNode()->name()));
+
         $refactoringExecutor = $application->refactoringExecutor();
-        $refactoringExecutor->handle(new ClassRename($class, new Identifier($newName)));
+        $report = $refactoringExecutor->handle(new ClassRename($class, new Identifier($newName)), $dryRun);
+        $reportPrinter = new ReportPrinter($input, $output);
+        $reportPrinter->print($report);
 
         return Command::SUCCESS;
     }

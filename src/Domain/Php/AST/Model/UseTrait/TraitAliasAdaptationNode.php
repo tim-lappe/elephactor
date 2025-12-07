@@ -9,7 +9,7 @@ use TimLappe\Elephactor\Domain\Php\AST\Model\Value\Identifier;
 use TimLappe\Elephactor\Domain\Php\AST\Model\Value\QualifiedName;
 use TimLappe\Elephactor\Domain\Php\AST\Model\Value\Visibility;
 
-final readonly class TraitAliasAdaptationNode extends AbstractNode implements TraitAdaptationNode
+final class TraitAliasAdaptationNode extends AbstractNode implements TraitAdaptationNode
 {
     public function __construct(
         Identifier $method,
@@ -23,25 +23,25 @@ final readonly class TraitAliasAdaptationNode extends AbstractNode implements Tr
         $alias = $alias !== null ? new TraitAliasIdentifierNode($alias) : null;
         $trait = $trait !== null ? new TraitQualifiedNameNode($trait) : null;
 
-        $this->children()->add($method);
-        
+        $this->children()->add('method', $method);
+
         if ($alias !== null) {
-            $this->children()->add($alias);
+            $this->children()->add('alias', $alias);
         }
-        
+
         if ($trait !== null) {
-            $this->children()->add($trait);
+            $this->children()->add('trait', $trait);
         }
     }
 
     public function method(): TraitMethodIdentifierNode
     {
-        return $this->children()->firstOfType(TraitMethodIdentifierNode::class) ?? throw new \RuntimeException('Trait method not found');
+        return $this->children()->getOne('method', TraitMethodIdentifierNode::class) ?? throw new \RuntimeException('Trait method not found');
     }
 
     public function alias(): ?TraitAliasIdentifierNode
     {
-        return $this->children()->firstOfType(TraitAliasIdentifierNode::class);
+        return $this->children()->getOne('alias', TraitAliasIdentifierNode::class);
     }
 
     public function visibility(): ?Visibility
@@ -51,6 +51,6 @@ final readonly class TraitAliasAdaptationNode extends AbstractNode implements Tr
 
     public function traitName(): ?TraitQualifiedNameNode
     {
-        return $this->children()->firstOfType(TraitQualifiedNameNode::class);
+        return $this->children()->getOne('trait', TraitQualifiedNameNode::class);
     }
 }

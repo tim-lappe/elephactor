@@ -6,23 +6,25 @@ namespace TimLappe\Elephactor\Domain\Php\AST\Model\Statement;
 
 use TimLappe\Elephactor\Domain\Php\AST\Model\AbstractNode;
 use TimLappe\Elephactor\Domain\Php\AST\Model\ExpressionNode;
-use TimLappe\Elephactor\Domain\Php\AST\Model\Node;
-use TimLappe\Elephactor\Domain\Php\AST\Model\NodeKind;
 use TimLappe\Elephactor\Domain\Php\AST\Model\StatementNode;
 
-final readonly class UnsetStatementNode extends AbstractNode implements StatementNode
+final class UnsetStatementNode extends AbstractNode implements StatementNode
 {
     /**
      * @param list<ExpressionNode> $expressions
      */
     public function __construct(
-        private readonly array $expressions
+        array $expressions
     ) {
         if ($expressions === []) {
             throw new \InvalidArgumentException('Unset statement requires at least one expression');
         }
 
         parent::__construct();
+
+        foreach ($expressions as $expression) {
+            $this->children()->add('expression', $expression);
+        }
     }
 
     /**
@@ -30,14 +32,6 @@ final readonly class UnsetStatementNode extends AbstractNode implements Statemen
      */
     public function expressions(): array
     {
-        return $this->expressions;
-    }
-
-    /**
-     * @return list<Node>
-     */
-    public function children(): array
-    {
-        return $this->expressions;
+        return $this->children()->getAllOf('expression', ExpressionNode::class);
     }
 }

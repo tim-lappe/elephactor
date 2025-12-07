@@ -11,7 +11,7 @@ use TimLappe\Elephactor\Domain\Php\AST\Model\TypeNode;
 use TimLappe\Elephactor\Domain\Php\AST\Model\Value\DocBlock;
 use TimLappe\Elephactor\Domain\Php\AST\Model\Value\PropertyModifiers;
 
-final readonly class PropertyDeclarationNode extends AbstractNode implements MemberNode
+final class PropertyDeclarationNode extends AbstractNode implements MemberNode
 {
     /**
      * @param list<PropertyNode>       $properties

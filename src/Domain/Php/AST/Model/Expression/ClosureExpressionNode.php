@@ -8,12 +8,10 @@ use TimLappe\Elephactor\Domain\Php\AST\Model\AbstractNode;
 use TimLappe\Elephactor\Domain\Php\AST\Model\Argument\ParameterNode;
 use TimLappe\Elephactor\Domain\Php\AST\Model\Attribute\AttributeGroupNode;
 use TimLappe\Elephactor\Domain\Php\AST\Model\ExpressionNode;
-use TimLappe\Elephactor\Domain\Php\AST\Model\Node;
-use TimLappe\Elephactor\Domain\Php\AST\Model\NodeKind;
 use TimLappe\Elephactor\Domain\Php\AST\Model\StatementNode;
 use TimLappe\Elephactor\Domain\Php\AST\Model\TypeNode;
 
-final readonly class ClosureExpressionNode extends AbstractNode implements ExpressionNode
+final class ClosureExpressionNode extends AbstractNode implements ExpressionNode
 {
     /**
      * @param list<AttributeGroupNode>     $attributes
@@ -22,15 +20,35 @@ final readonly class ClosureExpressionNode extends AbstractNode implements Expre
      * @param list<StatementNode>          $bodyStatements
      */
     public function __construct(
-        private readonly array $attributes,
-        private readonly array $parameters,
-        private readonly array $uses,
-        private readonly array $bodyStatements,
+        array $attributes,
+        array $parameters,
+        array $uses,
+        array $bodyStatements,
         private readonly ?TypeNode $returnType = null,
         private readonly bool $static = false,
         private readonly bool $returnsByReference = false
     ) {
         parent::__construct();
+
+        foreach ($attributes as $attribute) {
+            $this->children()->add('attribute', $attribute);
+        }
+
+        foreach ($parameters as $parameter) {
+            $this->children()->add('parameter', $parameter);
+        }
+
+        foreach ($uses as $use) {
+            $this->children()->add('use', $use);
+        }
+
+        foreach ($bodyStatements as $statement) {
+            $this->children()->add('bodyStatement', $statement);
+        }
+
+        if ($this->returnType !== null) {
+            $this->children()->add('returnType', $this->returnType);
+        }
     }
 
     /**
@@ -38,7 +56,7 @@ final readonly class ClosureExpressionNode extends AbstractNode implements Expre
      */
     public function attributes(): array
     {
-        return $this->attributes;
+        return $this->children()->getAllOf('attribute', AttributeGroupNode::class);
     }
 
     /**
@@ -46,7 +64,7 @@ final readonly class ClosureExpressionNode extends AbstractNode implements Expre
      */
     public function parameters(): array
     {
-        return $this->parameters;
+        return $this->children()->getAllOf('parameter', ParameterNode::class);
     }
 
     /**
@@ -54,7 +72,7 @@ final readonly class ClosureExpressionNode extends AbstractNode implements Expre
      */
     public function uses(): array
     {
-        return $this->uses;
+        return $this->children()->getAllOf('use', ClosureUseVariableNode::class);
     }
 
     /**
@@ -62,12 +80,12 @@ final readonly class ClosureExpressionNode extends AbstractNode implements Expre
      */
     public function bodyStatements(): array
     {
-        return $this->bodyStatements;
+        return $this->children()->getAllOf('bodyStatement', StatementNode::class);
     }
 
     public function returnType(): ?TypeNode
     {
-        return $this->returnType;
+        return $this->children()->getOne('returnType', TypeNode::class);
     }
 
     public function isStatic(): bool
@@ -80,22 +98,4 @@ final readonly class ClosureExpressionNode extends AbstractNode implements Expre
         return $this->returnsByReference;
     }
 
-    /**
-     * @return list<Node>
-     */
-    public function children(): array
-    {
-        $children = [
-            ...$this->attributes,
-            ...$this->parameters,
-            ...$this->uses,
-            ...$this->bodyStatements,
-        ];
-
-        if ($this->returnType !== null) {
-            $children[] = $this->returnType;
-        }
-
-        return $children;
-    }
 }

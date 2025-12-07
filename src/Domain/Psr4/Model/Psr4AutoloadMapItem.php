@@ -4,18 +4,18 @@ declare(strict_types=1);
 
 namespace TimLappe\Elephactor\Domain\Psr4\Model;
 
-use TimLappe\Elephactor\Domain\Php\Analysis\Model\ValueObjects\PhpNamespace;
+use TimLappe\Elephactor\Domain\Php\AST\Model\Value\QualifiedName;
 use TimLappe\Elephactor\Domain\Workspace\Model\Filesystem\Directory;
 
 final class Psr4AutoloadMapItem
 {
     public function __construct(
-        private PhpNamespace $namespace,
+        private QualifiedName $namespace,
         private Directory $directory,
     ) {
     }
 
-    public function namespace(): PhpNamespace
+    public function namespace(): QualifiedName
     {
         return $this->namespace;
     }

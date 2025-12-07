@@ -8,11 +8,8 @@ use TimLappe\Elephactor\Domain\Php\AST\Model\AbstractNode;
 use TimLappe\Elephactor\Domain\Php\AST\Model\ExpressionNode;
 use TimLappe\Elephactor\Domain\Php\AST\Model\StatementNode;
 
-final readonly class IfStatementNode extends AbstractNode implements StatementNode
+final class IfStatementNode extends AbstractNode implements StatementNode
 {
-    private int $ifStatementsCount;
-    private int $elseIfClausesCount;
-    private bool $hasElseClause;
     /**
      * @param list<StatementNode>    $ifStatements
      * @param list<ElseIfClauseNode> $elseIfClauses
@@ -25,28 +22,24 @@ final readonly class IfStatementNode extends AbstractNode implements StatementNo
     ) {
         parent::__construct();
 
-        $this->ifStatementsCount = count($ifStatements);
-        $this->elseIfClausesCount = count($elseIfClauses);
-        $this->hasElseClause = $elseClause !== null;
-
-        $this->children()->add($condition);
+        $this->children()->add('condition', $condition);
 
         foreach ($ifStatements as $ifStatement) {
-            $this->children()->add($ifStatement);
+            $this->children()->add('ifStatement', $ifStatement);
         }
 
         foreach ($elseIfClauses as $elseIfClause) {
-            $this->children()->add($elseIfClause);
+            $this->children()->add('elseIfClause', $elseIfClause);
         }
 
         if ($elseClause !== null) {
-            $this->children()->add($elseClause);
+            $this->children()->add('elseClause', $elseClause);
         }
     }
 
     public function condition(): ExpressionNode
     {
-        return $this->children()->toArray()[0] ?? throw new \RuntimeException('If statement missing condition');
+        return $this->children()->getOne('condition', ExpressionNode::class) ?? throw new \RuntimeException('If statement missing condition');
     }
 
     /**
@@ -54,11 +47,7 @@ final readonly class IfStatementNode extends AbstractNode implements StatementNo
      */
     public function ifStatements(): array
     {
-        return array_slice(
-            $this->children()->toArray(),
-            1,
-            $this->ifStatementsCount,
-        );
+        return $this->children()->getAllOf('ifStatement', StatementNode::class);
     }
 
     /**
@@ -66,21 +55,11 @@ final readonly class IfStatementNode extends AbstractNode implements StatementNo
      */
     public function elseIfClauses(): array
     {
-        return array_slice(
-            $this->children()->toArray(),
-            1 + $this->ifStatementsCount,
-            $this->elseIfClausesCount,
-        );
+        return $this->children()->getAllOf('elseIfClause', ElseIfClauseNode::class);
     }
 
     public function elseClause(): ?ElseClauseNode
     {
-        if (!$this->hasElseClause) {
-            return null;
-        }
-
-        $index = 1 + $this->ifStatementsCount + $this->elseIfClausesCount;
-
-        return $this->children()->toArray()[$index] ?? null;
+        return $this->children()->getOne('elseClause', ElseClauseNode::class);
     }
 }

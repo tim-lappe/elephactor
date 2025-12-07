@@ -8,6 +8,7 @@ use TimLappe\Elephactor\Domain\Workspace\Model\Filesystem\Directory;
 use TimLappe\Elephactor\Domain\Workspace\Model\Filesystem\FileCollection;
 use TimLappe\Elephactor\Domain\Workspace\Model\Filesystem\DirectoryCollection;
 use TimLappe\Elephactor\Domain\Workspace\Model\Filesystem\File;
+use TimLappe\Elephactor\Domain\Workspace\Model\Filesystem\AbsolutePath;
 
 use function get_class;
 
@@ -94,7 +95,7 @@ final class VirtualDirectory implements Directory
             return false;
         }
 
-        return $this->virtualAbsolutePath() === $directory->virtualAbsolutePath();
+        return $this->absolutePath()->equals($directory->absolutePath());
     }
 
     /**
@@ -105,12 +106,21 @@ final class VirtualDirectory implements Directory
         return $this->parent;
     }
 
-    private function virtualAbsolutePath(): string
+    public function find(AbsolutePath $path): null|File|Directory
     {
-        if ($this->parent === null) {
-            return $this->name();
+        if ($this->absolutePath()->equals($path)) {
+            return $this;
         }
 
-        return $this->parent->virtualAbsolutePath() . '/' . $this->name();
+        return $this->parent?->find($path);
+    }
+
+    public function absolutePath(): AbsolutePath
+    {
+        if ($this->parent === null) {
+            return new VirtualAbsolutePath($this->name());
+        }
+
+        return new VirtualAbsolutePath($this->parent->absolutePath()->value() . '/' . $this->name());
     }
 }

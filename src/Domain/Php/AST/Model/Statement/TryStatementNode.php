@@ -7,11 +7,8 @@ namespace TimLappe\Elephactor\Domain\Php\AST\Model\Statement;
 use TimLappe\Elephactor\Domain\Php\AST\Model\AbstractNode;
 use TimLappe\Elephactor\Domain\Php\AST\Model\StatementNode;
 
-final readonly class TryStatementNode extends AbstractNode implements StatementNode
+final class TryStatementNode extends AbstractNode implements StatementNode
 {
-    private int $tryStatementsCount;
-    private int $catchClausesCount;
-    private bool $hasFinallyClause;
     /**
      * @param list<StatementNode>   $tryStatements
      * @param list<CatchClauseNode> $catchClauses
@@ -23,20 +20,16 @@ final readonly class TryStatementNode extends AbstractNode implements StatementN
     ) {
         parent::__construct();
 
-        $this->tryStatementsCount = count($tryStatements);
-        $this->catchClausesCount = count($catchClauses);
-        $this->hasFinallyClause = $finallyClause !== null;
-
         foreach ($tryStatements as $tryStatement) {
-            $this->children()->add($tryStatement);
+            $this->children()->add('tryStatement', $tryStatement);
         }
 
         foreach ($catchClauses as $catchClause) {
-            $this->children()->add($catchClause);
+            $this->children()->add('catchClause', $catchClause);
         }
 
         if ($finallyClause !== null) {
-            $this->children()->add($finallyClause);
+            $this->children()->add('finallyClause', $finallyClause);
         }
     }
 
@@ -45,11 +38,7 @@ final readonly class TryStatementNode extends AbstractNode implements StatementN
      */
     public function tryStatements(): array
     {
-        return array_slice(
-            $this->children()->toArray(),
-            0,
-            $this->tryStatementsCount,
-        );
+        return $this->children()->getAllOf('tryStatement', StatementNode::class);
     }
 
     /**
@@ -57,21 +46,11 @@ final readonly class TryStatementNode extends AbstractNode implements StatementN
      */
     public function catchClauses(): array
     {
-        return array_slice(
-            $this->children()->toArray(),
-            $this->tryStatementsCount,
-            $this->catchClausesCount,
-        );
+        return $this->children()->getAllOf('catchClause', CatchClauseNode::class);
     }
 
     public function finallyClause(): ?FinallyClauseNode
     {
-        if (!$this->hasFinallyClause) {
-            return null;
-        }
-
-        $index = $this->tryStatementsCount + $this->catchClausesCount;
-
-        return $this->children()->toArray()[$index] ?? null;
+        return $this->children()->getOne('finallyClause', FinallyClauseNode::class);
     }
 }

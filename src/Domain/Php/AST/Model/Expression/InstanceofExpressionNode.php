@@ -10,31 +10,32 @@ use TimLappe\Elephactor\Domain\Php\AST\Model\Name\QualifiedNameNode;
 use TimLappe\Elephactor\Domain\Php\AST\Model\TypeNode;
 use TimLappe\Elephactor\Domain\Php\AST\Model\Value\QualifiedName;
 
-final readonly class InstanceofExpressionNode extends AbstractNode implements ExpressionNode
+final class InstanceofExpressionNode extends AbstractNode implements ExpressionNode
 {
-    private QualifiedNameNode|TypeNode|ExpressionNode $classReference;
-
     public function __construct(
-        private readonly ExpressionNode $expression,
+        ExpressionNode $expression,
         QualifiedName|TypeNode|ExpressionNode $classReference
     ) {
         parent::__construct();
 
-        $this->classReference = $classReference instanceof QualifiedName
+        $classReferenceNode = $classReference instanceof QualifiedName
             ? new QualifiedNameNode($classReference)
             : $classReference;
 
-        $this->children()->add($this->expression);
-        $this->children()->add($this->classReference);
+        $this->children()->add('expression', $expression);
+        $this->children()->add('classReference', $classReferenceNode);
     }
 
     public function expression(): ExpressionNode
     {
-        return $this->expression;
+        return $this->children()->getOne('expression', ExpressionNode::class) ?? throw new \RuntimeException('Expression not found');
     }
 
     public function classReference(): QualifiedNameNode|TypeNode|ExpressionNode
     {
-        return $this->classReference;
+        return $this->children()->getOne('classReference', QualifiedNameNode::class)
+            ?? $this->children()->getOne('classReference', TypeNode::class)
+            ?? $this->children()->getOne('classReference', ExpressionNode::class)
+            ?? throw new \RuntimeException('Class reference not found');
     }
 }

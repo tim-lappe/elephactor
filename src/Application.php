@@ -12,12 +12,12 @@ use TimLappe\Elephactor\Adapter\Php\Ast\Nikic\Builder\DomainToNikic\DomainToNiki
 use TimLappe\Elephactor\Adapter\Php\Ast\Nikic\Builder\NikicToDomain\NikicToDomainNodeMapper;
 use TimLappe\Elephactor\Adapter\Php\Ast\Nikic\Loader\NikicAstBuilder;
 use TimLappe\Elephactor\Adapter\Php\Ast\Nikic\Persister\NikicFilePersister;
+use TimLappe\Elephactor\Adapter\Workspace\FsAbsolutePath;
 use TimLappe\Elephactor\Adapter\Workspace\FsDirectory;
 use TimLappe\Elephactor\Adapter\Workspace\FsWorkspaceLoaderAdapter;
 use TimLappe\Elephactor\Command\MoveClass;
 use TimLappe\Elephactor\Command\RenameClass;
 use TimLappe\Elephactor\Domain\Psr4\Adapter\Psr4ClassLikeIndex;
-use TimLappe\Elephactor\Domain\Php\Analysis\Analyser\FileAnalyser;
 use TimLappe\Elephactor\Domain\Php\Refactoring\ChainedRefactoringExecutor;
 use TimLappe\Elephactor\Domain\Php\Refactoring\Executors\ClassRenameExecutor;
 use TimLappe\Elephactor\Domain\Php\Repository\PhpFileRepository;
@@ -60,7 +60,7 @@ class Application extends BaseApplication
 
         $workspaceLoader = new FsWorkspaceLoaderAdapter();
 
-        $fsDirectory = new FsDirectory($workingDirectory);
+        $fsDirectory = new FsDirectory(new FsAbsolutePath($workingDirectory));
         $workspace = $workspaceLoader->load($fsDirectory);
 
         $this->setupComposerProject($workspace);
@@ -78,11 +78,15 @@ class Application extends BaseApplication
         }
 
         $nikicAstBuilder = new NikicAstBuilder(new NikicToDomainNodeMapper(), $workspace->environment()->phpVersion());
-        $fileAnalyser = FileAnalyser::createDefault();
+        $autoloadMap = $composerProject->composerConfig()->autoload()->psr4AutoloadMap();
+        $autoloadMapDev = $composerProject->composerConfig()->autoloadDev()->psr4AutoloadMap();
+        if ($autoloadMapDev !== null) {
+            $autoloadMap->merge($autoloadMapDev);
+        }
 
         $psr4FileIndex = new Psr4PhpFileIndex(
-            $composerProject->composerConfig()->autoload()->psr4AutoloadMap(),
-            new PhpFileRepository($nikicAstBuilder, $fileAnalyser),
+            $autoloadMap,
+            new PhpFileRepository($nikicAstBuilder),
         );
 
         $psr4FileIndex->reload();

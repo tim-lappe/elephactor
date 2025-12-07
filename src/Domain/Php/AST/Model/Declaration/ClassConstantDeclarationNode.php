@@ -11,7 +11,7 @@ use TimLappe\Elephactor\Domain\Php\AST\Model\TypeNode;
 use TimLappe\Elephactor\Domain\Php\AST\Model\Value\DocBlock;
 use TimLappe\Elephactor\Domain\Php\AST\Model\Value\Visibility;
 
-final readonly class ClassConstantDeclarationNode extends AbstractNode implements MemberNode
+final class ClassConstantDeclarationNode extends AbstractNode implements MemberNode
 {
     /**
      * @param list<ConstElementNode>   $elements

@@ -5,11 +5,9 @@ declare(strict_types=1);
 namespace TimLappe\Elephactor\Domain\Php\AST\Model\Statement;
 
 use TimLappe\Elephactor\Domain\Php\AST\Model\AbstractNode;
-use TimLappe\Elephactor\Domain\Php\AST\Model\Node;
-use TimLappe\Elephactor\Domain\Php\AST\Model\NodeKind;
 use TimLappe\Elephactor\Domain\Php\AST\Model\StatementNode;
 
-final readonly class InlineHtmlStatementNode extends AbstractNode implements StatementNode
+final class InlineHtmlStatementNode extends AbstractNode implements StatementNode
 {
     public function __construct(
         private readonly string $content
@@ -20,13 +18,5 @@ final readonly class InlineHtmlStatementNode extends AbstractNode implements Sta
     public function content(): string
     {
         return $this->content;
-    }
-
-    /**
-     * @return list<Node>
-     */
-    public function children(): array
-    {
-        return [];
     }
 }

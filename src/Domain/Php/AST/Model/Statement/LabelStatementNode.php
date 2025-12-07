@@ -5,12 +5,10 @@ declare(strict_types=1);
 namespace TimLappe\Elephactor\Domain\Php\AST\Model\Statement;
 
 use TimLappe\Elephactor\Domain\Php\AST\Model\AbstractNode;
-use TimLappe\Elephactor\Domain\Php\AST\Model\Node;
-use TimLappe\Elephactor\Domain\Php\AST\Model\NodeKind;
 use TimLappe\Elephactor\Domain\Php\AST\Model\StatementNode;
 use TimLappe\Elephactor\Domain\Php\AST\Model\Value\Identifier;
 
-final readonly class LabelStatementNode extends AbstractNode implements StatementNode
+final class LabelStatementNode extends AbstractNode implements StatementNode
 {
     public function __construct(
         private readonly Identifier $label
@@ -23,11 +21,4 @@ final readonly class LabelStatementNode extends AbstractNode implements Statemen
         return $this->label;
     }
 
-    /**
-     * @return list<Node>
-     */
-    public function children(): array
-    {
-        return [];
-    }
 }

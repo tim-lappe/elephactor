@@ -6,6 +6,6 @@ namespace TimLappe\Elephactor\Domain\Php\AST\Model\UseTrait;
 
 use TimLappe\Elephactor\Domain\Php\AST\Model\Name\IdentifierNode;
 
-final readonly class TraitMethodIdentifierNode extends IdentifierNode
+final class TraitMethodIdentifierNode extends IdentifierNode
 {
 }

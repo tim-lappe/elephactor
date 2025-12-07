@@ -4,22 +4,31 @@ declare(strict_types=1);
 
 namespace TimLappe\Elephactor\Domain\Php\AST\Model\Value;
 
-final readonly class Identifier
+final class Identifier
 {
     private string $value;
 
     public function __construct(string $value)
     {
+        if (!self::valid($value)) {
+            throw new \InvalidArgumentException('Identifier must be a valid PHP identifier. Got: ' . $value);
+        }
+
+        $this->value = trim($value);
+    }
+
+    public static function valid(string $value): bool
+    {
         $normalized = trim($value);
         if ($normalized === '') {
-            throw new \InvalidArgumentException('Identifier cannot be empty');
+            return false;
         }
 
         if (preg_match('/^[a-zA-Z_\x80-\xff][a-zA-Z0-9_\x80-\xff]*$/', $normalized) !== 1) {
-            throw new \InvalidArgumentException('Identifier must be a valid PHP identifier. Got: ' . $normalized);
+            return false;
         }
 
-        $this->value = $normalized;
+        return true;
     }
 
     public function value(): string

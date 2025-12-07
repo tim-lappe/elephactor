@@ -17,4 +17,6 @@ interface Directory
     public function equals(Directory $directory): bool;
 
     public function parent(): ?Directory;
+
+    public function find(AbsolutePath $path): null|File|Directory;
 }

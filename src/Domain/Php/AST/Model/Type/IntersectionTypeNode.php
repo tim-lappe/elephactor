@@ -7,13 +7,13 @@ namespace TimLappe\Elephactor\Domain\Php\AST\Model\Type;
 use TimLappe\Elephactor\Domain\Php\AST\Model\AbstractNode;
 use TimLappe\Elephactor\Domain\Php\AST\Model\TypeNode;
 
-final readonly class IntersectionTypeNode extends AbstractNode implements TypeNode
+final class IntersectionTypeNode extends AbstractNode implements TypeNode
 {
     /**
      * @param list<TypeNode> $types
      */
     public function __construct(
-        private readonly array $types
+        array $types
     ) {
         if ($types === []) {
             throw new \InvalidArgumentException('Intersection type requires at least one referenced type');
@@ -22,7 +22,7 @@ final readonly class IntersectionTypeNode extends AbstractNode implements TypeNo
         parent::__construct();
 
         foreach ($types as $type) {
-            $this->children()->add($type);
+            $this->children()->add('type', $type);
         }
     }
 
@@ -31,6 +31,6 @@ final readonly class IntersectionTypeNode extends AbstractNode implements TypeNo
      */
     public function types(): array
     {
-        return $this->types;
+        return $this->children()->getAllOf('type', TypeNode::class);
     }
 }
