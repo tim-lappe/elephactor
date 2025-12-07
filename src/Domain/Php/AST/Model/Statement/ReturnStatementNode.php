@@ -8,7 +8,7 @@ use TimLappe\Elephactor\Domain\Php\AST\Model\AbstractNode;
 use TimLappe\Elephactor\Domain\Php\AST\Model\ExpressionNode;
 use TimLappe\Elephactor\Domain\Php\AST\Model\StatementNode;
 
-final readonly class ReturnStatementNode extends AbstractNode implements StatementNode
+final class ReturnStatementNode extends AbstractNode implements StatementNode
 {
     public function __construct(
         ?ExpressionNode $expression
@@ -16,12 +16,12 @@ final readonly class ReturnStatementNode extends AbstractNode implements Stateme
         parent::__construct();
 
         if ($expression !== null) {
-            $this->children()->add($expression);
+            $this->children()->add('expression', $expression);
         }
     }
 
     public function expression(): ?ExpressionNode
     {
-        return $this->children()->firstOfType(ExpressionNode::class);
+        return $this->children()->getOne('expression', ExpressionNode::class);
     }
 }

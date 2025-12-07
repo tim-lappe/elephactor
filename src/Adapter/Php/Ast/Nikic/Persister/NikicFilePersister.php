@@ -21,7 +21,7 @@ final class NikicFilePersister implements PhpFilePersister
 
     public function persist(PhpFile $phpFile): void
     {
-        $statements = $this->nodeMapper->buildFile($phpFile->fileNode()->fileNode());
+        $statements = $this->nodeMapper->buildFile($phpFile->fileNode());
         $content = $this->prettyPrinter->prettyPrintFile($statements);
 
         $phpFile->handle()->writeContent($content);

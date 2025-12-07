@@ -10,32 +10,33 @@ use TimLappe\Elephactor\Domain\Php\AST\Model\Name\QualifiedNameNode;
 use TimLappe\Elephactor\Domain\Php\AST\Model\ExpressionNode;
 use TimLappe\Elephactor\Domain\Php\AST\Model\Value\QualifiedName;
 
-final readonly class FunctionCallExpressionNode extends AbstractNode implements ExpressionNode
+final class FunctionCallExpressionNode extends AbstractNode implements ExpressionNode
 {
-    private QualifiedNameNode|ExpressionNode $callable;
     /**
      * @param list<ArgumentNode> $arguments
      */
     public function __construct(
         QualifiedName|ExpressionNode $callable,
-        private readonly array $arguments
+        array $arguments
     ) {
         parent::__construct();
 
-        $this->callable = $callable instanceof QualifiedName
+        $callableNode = $callable instanceof QualifiedName
             ? new QualifiedNameNode($callable)
             : $callable;
 
-        $this->children()->add($this->callable);
+        $this->children()->add('callable', $callableNode);
 
-        foreach ($this->arguments as $argument) {
-            $this->children()->add($argument);
+        foreach ($arguments as $argument) {
+            $this->children()->add('argument', $argument);
         }
     }
 
     public function callable(): QualifiedNameNode|ExpressionNode
     {
-        return $this->callable;
+        return $this->children()->getOne('callable', QualifiedNameNode::class)
+            ?? $this->children()->getOne('callable', ExpressionNode::class)
+            ?? throw new \RuntimeException('Callable not found');
     }
 
     /**
@@ -43,6 +44,6 @@ final readonly class FunctionCallExpressionNode extends AbstractNode implements 
      */
     public function arguments(): array
     {
-        return $this->arguments;
+        return $this->children()->getAllOf('argument', ArgumentNode::class);
     }
 }

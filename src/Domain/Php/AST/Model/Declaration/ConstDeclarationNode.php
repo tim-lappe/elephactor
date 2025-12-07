@@ -7,7 +7,7 @@ namespace TimLappe\Elephactor\Domain\Php\AST\Model\Declaration;
 use TimLappe\Elephactor\Domain\Php\AST\Model\AbstractNode;
 use TimLappe\Elephactor\Domain\Php\AST\Model\DeclarationNode;
 
-final readonly class ConstDeclarationNode extends AbstractNode implements DeclarationNode
+final class ConstDeclarationNode extends AbstractNode implements DeclarationNode
 {
     /**
      * @param list<ConstElementNode> $elements

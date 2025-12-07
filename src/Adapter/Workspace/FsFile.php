@@ -10,21 +10,15 @@ use TimLappe\Elephactor\Domain\Workspace\Model\Filesystem\File;
 final class FsFile implements File
 {
     public function __construct(
-        private string $absolutePath,
+        private FsAbsolutePath $absolutePath,
     ) {
-        $realPath = realpath($absolutePath);
-        if ($realPath === false) {
-            throw new \InvalidArgumentException(sprintf('File %s does not exist', $absolutePath));
-        }
-
-        $this->absolutePath = $realPath;
     }
 
     public function content(): string
     {
-        $content = file_get_contents($this->absolutePath);
+        $content = file_get_contents($this->absolutePath->value());
         if ($content === false) {
-            throw new \RuntimeException(sprintf('Could not read file %s', $this->absolutePath));
+            throw new \RuntimeException(sprintf('Could not read file %s', $this->absolutePath->value()));
         }
 
         return $content;
@@ -32,35 +26,35 @@ final class FsFile implements File
 
     public function name(): string
     {
-        return basename($this->absolutePath);
+        return basename($this->absolutePath->value());
     }
 
-    public function absolutePath(): string
+    public function absolutePath(): FsAbsolutePath
     {
         return $this->absolutePath;
     }
 
     public function directory(): FsDirectory
     {
-        return new FsDirectory(dirname($this->absolutePath));
+        return new FsDirectory(new FsAbsolutePath(dirname($this->absolutePath->value())));
     }
 
     public function rename(string $newName): void
     {
-        if (file_exists(dirname($this->absolutePath) . '/' . $newName)) {
-            throw new \RuntimeException(sprintf('File %s already exists', dirname($this->absolutePath) . '/' . $newName));
+        if (file_exists(dirname($this->absolutePath->value()) . '/' . $newName)) {
+            throw new \RuntimeException(sprintf('File %s already exists', dirname($this->absolutePath->value()) . '/' . $newName));
         }
 
-        if (!rename($this->absolutePath, dirname($this->absolutePath) . '/' . $newName)) {
-            throw new \RuntimeException(sprintf('Could not rename file %s to %s', $this->absolutePath, dirname($this->absolutePath) . '/' . $newName));
+        if (!rename($this->absolutePath->value(), dirname($this->absolutePath->value()) . '/' . $newName)) {
+            throw new \RuntimeException(sprintf('Could not rename file %s to %s', $this->absolutePath->value(), dirname($this->absolutePath->value()) . '/' . $newName));
         }
 
-        $this->absolutePath = dirname($this->absolutePath) . '/' . $newName;
+        $this->absolutePath = new FsAbsolutePath(dirname($this->absolutePath->value()) . '/' . $newName);
     }
 
     public function writeContent(string $content): void
     {
-        file_put_contents($this->absolutePath, $content);
+        file_put_contents($this->absolutePath->value(), $content);
     }
 
     public function moveTo(Directory $newDirectory): void
@@ -70,11 +64,11 @@ final class FsFile implements File
         }
 
         $newPath = $newDirectory->absolutePath() . '/' . $this->name();
-        if (!rename($this->absolutePath, $newPath)) {
-            throw new \RuntimeException(sprintf('Could not move file %s to %s', $this->absolutePath, $newPath));
+        if (!rename($this->absolutePath->value(), $newPath)) {
+            throw new \RuntimeException(sprintf('Could not move file %s to %s', $this->absolutePath->value(), $newPath));
         }
 
-        $this->absolutePath = $newPath;
+        $this->absolutePath = new FsAbsolutePath($newPath);
     }
 
     public function equals(File $file): bool
@@ -83,6 +77,6 @@ final class FsFile implements File
             return false;
         }
 
-        return $this->absolutePath() === $file->absolutePath();
+        return $this->absolutePath()->equals($file->absolutePath());
     }
 }

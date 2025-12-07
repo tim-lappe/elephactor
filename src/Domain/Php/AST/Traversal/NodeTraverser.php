@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace TimLappe\Elephactor\Domain\Php\AST\Traversal;
 
 use TimLappe\Elephactor\Domain\Php\AST\Model\Node;
-use TimLappe\Elephactor\Domain\Php\AST\Visitor\NodeVisitor;
 
 final class NodeTraverser
 {
@@ -17,18 +16,18 @@ final class NodeTraverser
     ) {
     }
 
-    public function traverse(Node $node): void
+    public function traverse(Node $node, VisitorContext $context): void
     {
         foreach ($this->nodeVisitors as $nodeVisitor) {
-            $nodeVisitor->enter($node);
+            $nodeVisitor->enter($node, $context);
         }
-        
+
         foreach ($node->children()->toArray() as $child) {
-            $this->traverse($child);
+            $this->traverse($child, $context);
         }
 
         foreach ($this->nodeVisitors as $nodeVisitor) {
-            $nodeVisitor->leave($node);
+            $nodeVisitor->leave($node, $context);
         }
     }
 }

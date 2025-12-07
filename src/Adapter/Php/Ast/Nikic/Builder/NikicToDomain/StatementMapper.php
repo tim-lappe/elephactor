@@ -9,7 +9,6 @@ use PhpParser\Node\Expr;
 use PhpParser\Node\Name;
 use PhpParser\Node\Stmt;
 use TimLappe\Elephactor\Domain\Php\AST\Model as Ast;
-use TimLappe\Elephactor\Domain\Php\AST\Model\Trivia\WhitespaceNode;
 
 final class StatementMapper
 {
@@ -32,24 +31,15 @@ final class StatementMapper
     public function mapStatements(array $statements): array
     {
         $result = [];
-        $previousEndLine = null;
 
         foreach ($statements as $statement) {
-            $lineBreaks = $this->calculateLineBreaks($previousEndLine, $statement);
-            if ($lineBreaks > 0) {
-                $result[] = new WhitespaceNode($lineBreaks);
-            }
-
             if ($statement instanceof Stmt\Nop) {
-                $previousEndLine = $this->resolveEndLine($statement);
                 continue;
             }
 
             foreach ($this->mapStatement($statement) as $mapped) {
                 $result[] = $mapped;
             }
-
-            $previousEndLine = $this->resolveEndLine($statement);
         }
 
         return $result;
@@ -605,32 +595,5 @@ final class StatementMapper
         return new Ast\Statement\BlockStatementNode(
             $this->mapStatements($statements),
         );
-    }
-
-
-    private function calculateLineBreaks(?int $previousEndLine, Node $current): int
-    {
-        $startLine = $this->resolveStartLine($current);
-        if ($previousEndLine === null || $startLine === null) {
-            return 0;
-        }
-
-        $lineBreaks = $startLine - $previousEndLine - 1;
-
-        return $lineBreaks > 0 ? $lineBreaks : 0;
-    }
-
-    private function resolveStartLine(Node $node): ?int
-    {
-        $line = $node->getStartLine();
-
-        return $line > 0 ? $line : null;
-    }
-
-    private function resolveEndLine(Node $node): ?int
-    {
-        $line = $node->getEndLine();
-
-        return $line > 0 ? $line : null;
     }
 }

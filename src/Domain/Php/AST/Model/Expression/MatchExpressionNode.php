@@ -6,28 +6,32 @@ namespace TimLappe\Elephactor\Domain\Php\AST\Model\Expression;
 
 use TimLappe\Elephactor\Domain\Php\AST\Model\AbstractNode;
 use TimLappe\Elephactor\Domain\Php\AST\Model\ExpressionNode;
-use TimLappe\Elephactor\Domain\Php\AST\Model\Node;
-use TimLappe\Elephactor\Domain\Php\AST\Model\NodeKind;
 
-final readonly class MatchExpressionNode extends AbstractNode implements ExpressionNode
+final class MatchExpressionNode extends AbstractNode implements ExpressionNode
 {
     /**
      * @param list<MatchArmNode> $arms
      */
     public function __construct(
-        private readonly ExpressionNode $expression,
-        private readonly array $arms
+        ExpressionNode $expression,
+        array $arms
     ) {
         if ($arms === []) {
             throw new \InvalidArgumentException('Match expression requires arms');
         }
 
         parent::__construct();
+
+        $this->children()->add('expression', $expression);
+
+        foreach ($arms as $arm) {
+            $this->children()->add('arm', $arm);
+        }
     }
 
     public function expression(): ExpressionNode
     {
-        return $this->expression;
+        return $this->children()->getOne('expression', ExpressionNode::class) ?? throw new \RuntimeException('Match subject not found');
     }
 
     /**
@@ -35,17 +39,7 @@ final readonly class MatchExpressionNode extends AbstractNode implements Express
      */
     public function arms(): array
     {
-        return $this->arms;
+        return $this->children()->getAllOf('arm', MatchArmNode::class);
     }
 
-    /**
-     * @return list<Node>
-     */
-    public function children(): array
-    {
-        return [
-            $this->expression,
-            ...$this->arms,
-        ];
-    }
 }

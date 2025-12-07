@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace TimLappe\Elephactor\Domain\Psr4\Adapter\Index;
 
-use TimLappe\Elephactor\Domain\Php\Analysis\Model\ValueObjects\PhpNamespace;
+use TimLappe\Elephactor\Domain\Php\AST\Model\Value\QualifiedName;
 use TimLappe\Elephactor\Domain\Php\Model\FileModel\PhpFileCollection;
 
 final class NamespaceFileMap
@@ -14,7 +14,7 @@ final class NamespaceFileMap
      */
     private array $items = [];
 
-    public function add(PhpNamespace $namespace, PhpFileCollection $files): void
+    public function add(QualifiedName $namespace, PhpFileCollection $files): void
     {
         foreach ($this->items as $item) {
             if ($item->namespace()->equals($namespace)) {
@@ -34,7 +34,7 @@ final class NamespaceFileMap
         return $this->items;
     }
 
-    public function getItemForNamespace(PhpNamespace $namespace): NamespaceFileMapItem
+    public function getItemForNamespace(QualifiedName $namespace): NamespaceFileMapItem
     {
         foreach ($this->items as $item) {
             if ($item->namespace()->equals($namespace)) {
@@ -42,6 +42,6 @@ final class NamespaceFileMap
             }
         }
 
-        throw new \InvalidArgumentException(sprintf('Namespace %s not found', $namespace->name()));
+        throw new \InvalidArgumentException(sprintf('Namespace %s not found', $namespace->__toString()));
     }
 }

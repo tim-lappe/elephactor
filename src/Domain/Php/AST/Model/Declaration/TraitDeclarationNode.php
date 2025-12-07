@@ -12,7 +12,7 @@ use TimLappe\Elephactor\Domain\Php\AST\Model\MemberNode;
 use TimLappe\Elephactor\Domain\Php\AST\Model\Value\DocBlock;
 use TimLappe\Elephactor\Domain\Php\AST\Model\Value\Identifier;
 
-final readonly class TraitDeclarationNode extends AbstractNode implements ClassLikeNode
+final class TraitDeclarationNode extends AbstractNode implements ClassLikeNode
 {
     /**
      * @param list<AttributeGroupNode> $attributes

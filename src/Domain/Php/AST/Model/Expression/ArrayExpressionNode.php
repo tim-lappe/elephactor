@@ -6,8 +6,6 @@ namespace TimLappe\Elephactor\Domain\Php\AST\Model\Expression;
 
 use TimLappe\Elephactor\Domain\Php\AST\Model\AbstractNode;
 use TimLappe\Elephactor\Domain\Php\AST\Model\ExpressionNode;
-use TimLappe\Elephactor\Domain\Php\AST\Model\Node;
-use TimLappe\Elephactor\Domain\Php\AST\Model\NodeKind;
 
 final class ArrayExpressionNode extends AbstractNode implements ExpressionNode
 {
@@ -15,10 +13,14 @@ final class ArrayExpressionNode extends AbstractNode implements ExpressionNode
      * @param list<ArrayItemNode> $items
      */
     public function __construct(
-        private readonly array $items,
+        array $items,
         private readonly bool $shortSyntax = true
     ) {
-        parent::__construct(NodeKind::ARRAY_EXPRESSION);
+        parent::__construct();
+
+        foreach ($items as $item) {
+            $this->children()->add('item', $item);
+        }
     }
 
     /**
@@ -26,7 +28,7 @@ final class ArrayExpressionNode extends AbstractNode implements ExpressionNode
      */
     public function items(): array
     {
-        return $this->items;
+        return $this->children()->getAllOf('item', ArrayItemNode::class);
     }
 
     public function usesShortSyntax(): bool
@@ -34,11 +36,4 @@ final class ArrayExpressionNode extends AbstractNode implements ExpressionNode
         return $this->shortSyntax;
     }
 
-    /**
-     * @return list<Node>
-     */
-    public function children(): array
-    {
-        return $this->items;
-    }
 }

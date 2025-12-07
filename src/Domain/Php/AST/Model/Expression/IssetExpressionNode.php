@@ -6,10 +6,8 @@ namespace TimLappe\Elephactor\Domain\Php\AST\Model\Expression;
 
 use TimLappe\Elephactor\Domain\Php\AST\Model\AbstractNode;
 use TimLappe\Elephactor\Domain\Php\AST\Model\ExpressionNode;
-use TimLappe\Elephactor\Domain\Php\AST\Model\Node;
-use TimLappe\Elephactor\Domain\Php\AST\Model\NodeKind;
 
-final readonly class IssetExpressionNode extends AbstractNode implements ExpressionNode
+final class IssetExpressionNode extends AbstractNode implements ExpressionNode
 {
     /**
      * @param list<ExpressionNode> $expressions
@@ -22,6 +20,10 @@ final readonly class IssetExpressionNode extends AbstractNode implements Express
         }
 
         parent::__construct();
+
+        foreach ($expressions as $expression) {
+            $this->children()->add('expression', $expression);
+        }
     }
 
     /**
@@ -32,11 +34,4 @@ final readonly class IssetExpressionNode extends AbstractNode implements Express
         return $this->expressions;
     }
 
-    /**
-     * @return list<Node>
-     */
-    public function children(): array
-    {
-        return $this->expressions;
-    }
 }

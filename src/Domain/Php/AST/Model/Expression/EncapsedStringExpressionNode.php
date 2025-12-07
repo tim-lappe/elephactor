@@ -6,20 +6,22 @@ namespace TimLappe\Elephactor\Domain\Php\AST\Model\Expression;
 
 use TimLappe\Elephactor\Domain\Php\AST\Model\AbstractNode;
 use TimLappe\Elephactor\Domain\Php\AST\Model\ExpressionNode;
-use TimLappe\Elephactor\Domain\Php\AST\Model\Node;
-use TimLappe\Elephactor\Domain\Php\AST\Model\NodeKind;
 use TimLappe\Elephactor\Domain\Php\AST\Model\Value\EncapsedStringKind;
 
-final readonly class EncapsedStringExpressionNode extends AbstractNode implements ExpressionNode
+final class EncapsedStringExpressionNode extends AbstractNode implements ExpressionNode
 {
     /**
      * @param list<EncapsedStringPartNode> $parts
      */
     public function __construct(
         private readonly EncapsedStringKind $stringKind,
-        private readonly array $parts
+        array $parts
     ) {
         parent::__construct();
+
+        foreach ($parts as $part) {
+            $this->children()->add('part', $part);
+        }
     }
 
     public function stringKind(): EncapsedStringKind
@@ -32,14 +34,7 @@ final readonly class EncapsedStringExpressionNode extends AbstractNode implement
      */
     public function parts(): array
     {
-        return $this->parts;
+        return $this->children()->getAllOf('part', EncapsedStringPartNode::class);
     }
 
-    /**
-     * @return list<Node>
-     */
-    public function children(): array
-    {
-        return $this->parts;
-    }
 }

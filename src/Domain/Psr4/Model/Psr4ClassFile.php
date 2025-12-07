@@ -6,7 +6,6 @@ namespace TimLappe\Elephactor\Domain\Psr4\Model;
 
 use TimLappe\Elephactor\Domain\Php\Model\ClassLike\PhpClassLike;
 use TimLappe\Elephactor\Domain\Php\Model\FileModel\PhpFile;
-use TimLappe\Elephactor\Domain\Php\AST\Model\ClassLikeNode;
 
 final class Psr4ClassFile extends PhpClassLike
 {
@@ -14,10 +13,14 @@ final class Psr4ClassFile extends PhpClassLike
         PhpFile $file,
     ) {
         $classLikeDeclaration = $file->fileNode()->classLikeDeclerations();
-        if ($classLikeDeclaration->count() !== 1 || !$classLikeDeclaration->first() instanceof ClassLikeNode) {
+        if (count($classLikeDeclaration) === 0) {
+            throw new \RuntimeException('No class declaration found in file: ' . $file->handle()->name());
+        }
+
+        if (count($classLikeDeclaration) > 1) {
             throw new \RuntimeException('Multiple class declarations not supported in file: ' . $file->handle()->name());
         }
 
-        parent::__construct($file, $classLikeDeclaration->first());
+        parent::__construct($file, $classLikeDeclaration[0]);
     }
 }

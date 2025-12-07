@@ -4,17 +4,17 @@ declare(strict_types=1);
 
 namespace TimLappe\Elephactor\Domain\Php\Index\FileIndex\Criteria;
 
-use TimLappe\Elephactor\Domain\Php\Analysis\Model\ValueObjects\PhpNamespace;
+use TimLappe\Elephactor\Domain\Php\AST\Model\Value\QualifiedName;
 
 final class FilesContainNamespaceCriteria implements PhpFileCriteria
 {
     public function __construct(
-        private PhpNamespace $namespace,
+        private QualifiedName $namespace,
         private bool $exactMatch = false,
     ) {
     }
 
-    public function namespace(): PhpNamespace
+    public function namespace(): QualifiedName
     {
         return $this->namespace;
     }

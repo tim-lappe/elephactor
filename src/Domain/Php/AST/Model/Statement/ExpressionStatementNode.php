@@ -8,18 +8,18 @@ use TimLappe\Elephactor\Domain\Php\AST\Model\AbstractNode;
 use TimLappe\Elephactor\Domain\Php\AST\Model\ExpressionNode;
 use TimLappe\Elephactor\Domain\Php\AST\Model\StatementNode;
 
-final readonly class ExpressionStatementNode extends AbstractNode implements StatementNode
+final class ExpressionStatementNode extends AbstractNode implements StatementNode
 {
     public function __construct(
         ExpressionNode $expression
     ) {
         parent::__construct();
 
-        $this->children()->add($expression);
+        $this->children()->add('expression', $expression);
     }
 
     public function expression(): ExpressionNode
     {
-        return $this->children()->firstOfType(ExpressionNode::class) ?? throw new \RuntimeException('Expression statement missing expression');
+        return $this->children()->getOne('expression', ExpressionNode::class) ?? throw new \RuntimeException('Expression statement missing expression');
     }
 }

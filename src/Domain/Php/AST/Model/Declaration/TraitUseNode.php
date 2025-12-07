@@ -10,10 +10,10 @@ use TimLappe\Elephactor\Domain\Php\AST\Model\Name\QualifiedNameNode;
 use TimLappe\Elephactor\Domain\Php\AST\Model\UseTrait\TraitAdaptationNode;
 use TimLappe\Elephactor\Domain\Php\AST\Model\Value\QualifiedName;
 
-final readonly class TraitUseNode extends AbstractNode implements MemberNode
+final class TraitUseNode extends AbstractNode implements MemberNode
 {
     /**
-     * @param list<QualifiedName> $traits
+     * @param list<QualifiedName>       $traits
      * @param list<TraitAdaptationNode> $adaptations
      */
     public function __construct(

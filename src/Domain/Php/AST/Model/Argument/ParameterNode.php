@@ -9,16 +9,17 @@ use TimLappe\Elephactor\Domain\Php\AST\Model\Attribute\AttributeGroupNode;
 use TimLappe\Elephactor\Domain\Php\AST\Model\Name\IdentifierNode;
 use TimLappe\Elephactor\Domain\Php\AST\Model\ExpressionNode;
 use TimLappe\Elephactor\Domain\Php\AST\Model\TypeNode;
+use TimLappe\Elephactor\Domain\Php\AST\Model\Value\Identifier;
 use TimLappe\Elephactor\Domain\Php\AST\Model\Value\ParameterPassingMode;
 use TimLappe\Elephactor\Domain\Php\AST\Model\Value\Visibility;
 
-final readonly class ParameterNode extends AbstractNode
+final class ParameterNode extends AbstractNode
 {
     /**
      * @param list<AttributeGroupNode> $attributes
      */
     public function __construct(
-        IdentifierNode $name,
+        Identifier $identifier,
         ?TypeNode $type = null,
         private readonly ParameterPassingMode $passingMode = ParameterPassingMode::BY_VALUE,
         private readonly bool $variadic = false,
@@ -29,7 +30,7 @@ final readonly class ParameterNode extends AbstractNode
     ) {
         parent::__construct();
 
-        $this->children()->add('name', $name);
+        $this->children()->add('name', new IdentifierNode($identifier));
 
         foreach ($attributes as $attribute) {
             $this->children()->add('attribute', $attribute);

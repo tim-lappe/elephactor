@@ -8,10 +8,8 @@ use TimLappe\Elephactor\Domain\Php\AST\Model\AbstractNode;
 use TimLappe\Elephactor\Domain\Php\AST\Model\ExpressionNode;
 use TimLappe\Elephactor\Domain\Php\AST\Model\StatementNode;
 
-final readonly class ForeachStatementNode extends AbstractNode implements StatementNode
+final class ForeachStatementNode extends AbstractNode implements StatementNode
 {
-    private bool $hasKey;
-    private int $statementsOffset;
     /**
      * @param list<StatementNode> $statements
      */
@@ -24,35 +22,32 @@ final readonly class ForeachStatementNode extends AbstractNode implements Statem
     ) {
         parent::__construct();
 
-        $this->hasKey = $key !== null;
-        $this->statementsOffset = $this->hasKey ? 3 : 2;
-
-        $this->children()->add($source);
+        $this->children()->add('source', $source);
 
         if ($key !== null) {
-            $this->children()->add($key);
+            $this->children()->add('key', $key);
         }
 
-        $this->children()->add($value);
+        $this->children()->add('value', $value);
 
         foreach ($statements as $statement) {
-            $this->children()->add($statement);
+            $this->children()->add('statement', $statement);
         }
     }
 
     public function source(): ExpressionNode
     {
-        return $this->children()->toArray()[0] ?? throw new \RuntimeException('Foreach source missing');
+        return $this->children()->getOne('source', ExpressionNode::class) ?? throw new \RuntimeException('Foreach source missing');
     }
 
     public function key(): ?ExpressionNode
     {
-        return $this->hasKey ? $this->children()->toArray()[1] : null;
+        return $this->children()->getOne('key', ExpressionNode::class);
     }
 
     public function value(): ExpressionNode
     {
-        return $this->children()->toArray()[$this->hasKey ? 2 : 1] ?? throw new \RuntimeException('Foreach value missing');
+        return $this->children()->getOne('value', ExpressionNode::class) ?? throw new \RuntimeException('Foreach value missing');
     }
 
     public function iteratesByReference(): bool
@@ -65,9 +60,6 @@ final readonly class ForeachStatementNode extends AbstractNode implements Statem
      */
     public function statements(): array
     {
-        return array_slice(
-            $this->children()->toArray(),
-            $this->statementsOffset,
-        );
+        return $this->children()->getAllOf('statement', StatementNode::class);
     }
 }

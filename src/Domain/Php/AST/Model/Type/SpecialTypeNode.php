@@ -7,7 +7,7 @@ namespace TimLappe\Elephactor\Domain\Php\AST\Model\Type;
 use TimLappe\Elephactor\Domain\Php\AST\Model\AbstractNode;
 use TimLappe\Elephactor\Domain\Php\AST\Model\TypeNode;
 
-final readonly class SpecialTypeNode extends AbstractNode implements TypeNode
+final class SpecialTypeNode extends AbstractNode implements TypeNode
 {
     public function __construct(
         private readonly SpecialType $type

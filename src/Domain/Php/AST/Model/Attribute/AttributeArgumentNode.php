@@ -9,7 +9,7 @@ use TimLappe\Elephactor\Domain\Php\AST\Model\ExpressionNode;
 use TimLappe\Elephactor\Domain\Php\AST\Model\Name\IdentifierNode;
 use TimLappe\Elephactor\Domain\Php\AST\Model\Value\Identifier;
 
-final readonly class AttributeArgumentNode extends AbstractNode
+final class AttributeArgumentNode extends AbstractNode
 {
     public function __construct(
         ExpressionNode $expression,

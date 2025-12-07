@@ -12,7 +12,7 @@ use TimLappe\Elephactor\Domain\Php\AST\Model\MemberNode;
 use TimLappe\Elephactor\Domain\Php\AST\Model\Value\DocBlock;
 use TimLappe\Elephactor\Domain\Php\AST\Model\Value\Identifier;
 
-final readonly class EnumCaseNode extends AbstractNode implements MemberNode
+final class EnumCaseNode extends AbstractNode implements MemberNode
 {
     /**
      * @param list<AttributeGroupNode> $attributes

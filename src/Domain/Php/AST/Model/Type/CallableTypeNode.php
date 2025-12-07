@@ -7,7 +7,7 @@ namespace TimLappe\Elephactor\Domain\Php\AST\Model\Type;
 use TimLappe\Elephactor\Domain\Php\AST\Model\AbstractNode;
 use TimLappe\Elephactor\Domain\Php\AST\Model\TypeNode;
 
-final readonly class CallableTypeNode extends AbstractNode implements TypeNode
+final class CallableTypeNode extends AbstractNode implements TypeNode
 {
     /**
      * @param list<CallableParameter> $parameters
@@ -21,12 +21,12 @@ final readonly class CallableTypeNode extends AbstractNode implements TypeNode
         foreach ($parameters as $parameter) {
             $type = $parameter->type();
             if ($type !== null) {
-                $this->children()->add($type);
+                $this->children()->add('parameterType', $type);
             }
         }
 
         if ($this->returnType !== null) {
-            $this->children()->add($this->returnType);
+            $this->children()->add('returnType', $this->returnType);
         }
     }
 
@@ -40,6 +40,6 @@ final readonly class CallableTypeNode extends AbstractNode implements TypeNode
 
     public function returnType(): ?TypeNode
     {
-        return $this->returnType;
+        return $this->children()->getOne('returnType', TypeNode::class);
     }
 }

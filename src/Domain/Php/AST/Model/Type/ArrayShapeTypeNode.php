@@ -7,7 +7,7 @@ namespace TimLappe\Elephactor\Domain\Php\AST\Model\Type;
 use TimLappe\Elephactor\Domain\Php\AST\Model\AbstractNode;
 use TimLappe\Elephactor\Domain\Php\AST\Model\TypeNode;
 
-final readonly class ArrayShapeTypeNode extends AbstractNode implements TypeNode
+final class ArrayShapeTypeNode extends AbstractNode implements TypeNode
 {
     /**
      * @param list<ArrayShapeField> $fields
@@ -18,7 +18,7 @@ final readonly class ArrayShapeTypeNode extends AbstractNode implements TypeNode
         parent::__construct();
 
         foreach ($fields as $field) {
-            $this->children()->add($field->type());
+            $this->children()->add('type', $field->type());
         }
     }
 

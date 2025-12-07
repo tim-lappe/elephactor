@@ -24,12 +24,13 @@ final class ChainedRefactoringExecutor implements RefactoringExecutor
         return false;
     }
 
-    public function handle(RefactoringCommand $command): void
+    public function handle(RefactoringCommand $command, bool $dryRun = false): RefactoringReport
     {
+        $report = new RefactoringReport();
+
         foreach ($this->executors as $executor) {
             if ($executor->supports($command)) {
-                $executor->handle($command);
-                return;
+                return $executor->handle($command, $dryRun);
             }
         }
 

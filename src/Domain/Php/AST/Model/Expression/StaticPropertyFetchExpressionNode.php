@@ -11,35 +11,36 @@ use TimLappe\Elephactor\Domain\Php\AST\Model\Name\QualifiedNameNode;
 use TimLappe\Elephactor\Domain\Php\AST\Model\Value\Identifier;
 use TimLappe\Elephactor\Domain\Php\AST\Model\Value\QualifiedName;
 
-final readonly class StaticPropertyFetchExpressionNode extends AbstractNode implements ExpressionNode
+final class StaticPropertyFetchExpressionNode extends AbstractNode implements ExpressionNode
 {
-    private QualifiedNameNode|ExpressionNode $classReference;
-    private IdentifierNode|ExpressionNode $property;
-
     public function __construct(
         QualifiedName|ExpressionNode $classReference,
         Identifier|ExpressionNode $property
     ) {
         parent::__construct();
 
-        $this->classReference = $classReference instanceof QualifiedName
+        $classReferenceNode = $classReference instanceof QualifiedName
             ? new QualifiedNameNode($classReference)
             : $classReference;
-        $this->property = $property instanceof Identifier
+        $propertyNode = $property instanceof Identifier
             ? new IdentifierNode($property)
             : $property;
 
-        $this->children()->add($this->classReference);
-        $this->children()->add($this->property);
+        $this->children()->add('classReference', $classReferenceNode);
+        $this->children()->add('property', $propertyNode);
     }
 
     public function classReference(): QualifiedNameNode|ExpressionNode
     {
-        return $this->classReference;
+        return $this->children()->getOne('classReference', QualifiedNameNode::class)
+            ?? $this->children()->getOne('classReference', ExpressionNode::class)
+            ?? throw new \RuntimeException('Class reference not found');
     }
 
     public function property(): IdentifierNode|ExpressionNode
     {
-        return $this->property;
+        return $this->children()->getOne('property', IdentifierNode::class)
+            ?? $this->children()->getOne('property', ExpressionNode::class)
+            ?? throw new \RuntimeException('Property not found');
     }
 }

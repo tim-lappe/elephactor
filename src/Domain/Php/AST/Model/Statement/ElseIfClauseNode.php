@@ -8,9 +8,8 @@ use TimLappe\Elephactor\Domain\Php\AST\Model\AbstractNode;
 use TimLappe\Elephactor\Domain\Php\AST\Model\ExpressionNode;
 use TimLappe\Elephactor\Domain\Php\AST\Model\StatementNode;
 
-final readonly class ElseIfClauseNode extends AbstractNode
+final class ElseIfClauseNode extends AbstractNode
 {
-    private int $statementsCount;
     /**
      * @param list<StatementNode> $statements
      */
@@ -20,18 +19,16 @@ final readonly class ElseIfClauseNode extends AbstractNode
     ) {
         parent::__construct();
 
-        $this->statementsCount = count($statements);
-
-        $this->children()->add($condition);
+        $this->children()->add('condition', $condition);
 
         foreach ($statements as $statement) {
-            $this->children()->add($statement);
+            $this->children()->add('statement', $statement);
         }
     }
 
     public function condition(): ExpressionNode
     {
-        return $this->children()->toArray()[0] ?? throw new \RuntimeException('Else-if condition missing');
+        return $this->children()->getOne('condition', ExpressionNode::class) ?? throw new \RuntimeException('Else-if condition missing');
     }
 
     /**
@@ -39,10 +36,6 @@ final readonly class ElseIfClauseNode extends AbstractNode
      */
     public function statements(): array
     {
-        return array_slice(
-            $this->children()->toArray(),
-            1,
-            $this->statementsCount,
-        );
+        return $this->children()->getAllOf('statement', StatementNode::class);
     }
 }

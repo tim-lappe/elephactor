@@ -10,32 +10,33 @@ use TimLappe\Elephactor\Domain\Php\AST\Model\Name\QualifiedNameNode;
 use TimLappe\Elephactor\Domain\Php\AST\Model\ExpressionNode;
 use TimLappe\Elephactor\Domain\Php\AST\Model\Value\QualifiedName;
 
-final readonly class NewExpressionNode extends AbstractNode implements ExpressionNode
+final class NewExpressionNode extends AbstractNode implements ExpressionNode
 {
-    private QualifiedNameNode|ExpressionNode $classReference;
     /**
      * @param list<ArgumentNode> $arguments
      */
     public function __construct(
         QualifiedName|ExpressionNode $classReference,
-        private readonly array $arguments
+        array $arguments
     ) {
         parent::__construct();
 
-        $this->classReference = $classReference instanceof QualifiedName
+        $classReferenceNode = $classReference instanceof QualifiedName
             ? new QualifiedNameNode($classReference)
             : $classReference;
 
-        $this->children()->add($this->classReference);
+        $this->children()->add('classReference', $classReferenceNode);
 
-        foreach ($this->arguments as $argument) {
-            $this->children()->add($argument);
+        foreach ($arguments as $argument) {
+            $this->children()->add('argument', $argument);
         }
     }
 
     public function classReference(): QualifiedNameNode|ExpressionNode
     {
-        return $this->classReference;
+        return $this->children()->getOne('classReference', QualifiedNameNode::class)
+            ?? $this->children()->getOne('classReference', ExpressionNode::class)
+            ?? throw new \RuntimeException('Class reference not found');
     }
 
     /**
@@ -43,6 +44,6 @@ final readonly class NewExpressionNode extends AbstractNode implements Expressio
      */
     public function arguments(): array
     {
-        return $this->arguments;
+        return $this->children()->getAllOf('argument', ArgumentNode::class);
     }
 }

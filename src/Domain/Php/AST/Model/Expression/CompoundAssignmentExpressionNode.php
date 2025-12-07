@@ -6,22 +6,23 @@ namespace TimLappe\Elephactor\Domain\Php\AST\Model\Expression;
 
 use TimLappe\Elephactor\Domain\Php\AST\Model\AbstractNode;
 use TimLappe\Elephactor\Domain\Php\AST\Model\ExpressionNode;
-use TimLappe\Elephactor\Domain\Php\AST\Model\Node;
-use TimLappe\Elephactor\Domain\Php\AST\Model\NodeKind;
 use TimLappe\Elephactor\Domain\Php\AST\Model\Value\AssignmentOperator;
 
-final readonly class CompoundAssignmentExpressionNode extends AbstractNode implements ExpressionNode
+final class CompoundAssignmentExpressionNode extends AbstractNode implements ExpressionNode
 {
     public function __construct(
         private readonly AssignmentOperator $operator,
-        private readonly ExpressionNode $target,
-        private readonly ExpressionNode $value
+        ExpressionNode $target,
+        ExpressionNode $value
     ) {
         if ($operator === AssignmentOperator::ASSIGN) {
             throw new \InvalidArgumentException('Compound assignment requires a compound operator');
         }
 
         parent::__construct();
+
+        $this->children()->add('target', $target);
+        $this->children()->add('value', $value);
     }
 
     public function operator(): AssignmentOperator
@@ -31,22 +32,12 @@ final readonly class CompoundAssignmentExpressionNode extends AbstractNode imple
 
     public function target(): ExpressionNode
     {
-        return $this->target;
+        return $this->children()->getOne('target', ExpressionNode::class) ?? throw new \RuntimeException('Target expression not found');
     }
 
     public function value(): ExpressionNode
     {
-        return $this->value;
+        return $this->children()->getOne('value', ExpressionNode::class) ?? throw new \RuntimeException('Value expression not found');
     }
 
-    /**
-     * @return list<Node>
-     */
-    public function children(): array
-    {
-        return [
-            $this->target,
-            $this->value,
-        ];
-    }
 }

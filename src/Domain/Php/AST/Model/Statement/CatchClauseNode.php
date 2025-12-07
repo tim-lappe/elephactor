@@ -9,9 +9,8 @@ use TimLappe\Elephactor\Domain\Php\AST\Model\StatementNode;
 use TimLappe\Elephactor\Domain\Php\AST\Model\TypeNode;
 use TimLappe\Elephactor\Domain\Php\AST\Model\Value\Identifier;
 
-final readonly class CatchClauseNode extends AbstractNode
+final class CatchClauseNode extends AbstractNode
 {
-    private int $typesCount;
     /**
      * @param list<TypeNode>      $types
      * @param list<StatementNode> $statements
@@ -27,14 +26,12 @@ final readonly class CatchClauseNode extends AbstractNode
 
         parent::__construct();
 
-        $this->typesCount = count($types);
-
         foreach ($types as $type) {
-            $this->children()->add($type);
+            $this->children()->add('type', $type);
         }
 
         foreach ($statements as $statement) {
-            $this->children()->add($statement);
+            $this->children()->add('statement', $statement);
         }
     }
 
@@ -43,11 +40,7 @@ final readonly class CatchClauseNode extends AbstractNode
      */
     public function types(): array
     {
-        return array_slice(
-            $this->children()->toArray(),
-            0,
-            $this->typesCount,
-        );
+        return $this->children()->getAllOf('type', TypeNode::class);
     }
 
     public function variable(): Identifier
@@ -60,9 +53,6 @@ final readonly class CatchClauseNode extends AbstractNode
      */
     public function statements(): array
     {
-        return array_slice(
-            $this->children()->toArray(),
-            $this->typesCount,
-        );
+        return $this->children()->getAllOf('statement', StatementNode::class);
     }
 }

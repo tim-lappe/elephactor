@@ -10,6 +10,7 @@ final class ComposerConfig
 {
     public function __construct(
         private Autoload $autoload,
+        private Autoload $autoloadDev,
         private ?PhpVersion $platformPhpVersion = null,
     ) {
     }
@@ -17,6 +18,11 @@ final class ComposerConfig
     public function autoload(): Autoload
     {
         return $this->autoload;
+    }
+
+    public function autoloadDev(): Autoload
+    {
+        return $this->autoloadDev;
     }
 
     public function platformPhpVersion(): ?PhpVersion

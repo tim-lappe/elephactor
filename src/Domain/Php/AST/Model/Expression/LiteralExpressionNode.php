@@ -8,7 +8,7 @@ use TimLappe\Elephactor\Domain\Php\AST\Model\AbstractNode;
 use TimLappe\Elephactor\Domain\Php\AST\Model\ExpressionNode;
 use TimLappe\Elephactor\Domain\Php\AST\Model\Value\LiteralValue;
 
-final readonly class LiteralExpressionNode extends AbstractNode implements ExpressionNode
+final class LiteralExpressionNode extends AbstractNode implements ExpressionNode
 {
     public function __construct(
         private readonly LiteralValue $value

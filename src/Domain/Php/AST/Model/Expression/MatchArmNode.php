@@ -6,19 +6,23 @@ namespace TimLappe\Elephactor\Domain\Php\AST\Model\Expression;
 
 use TimLappe\Elephactor\Domain\Php\AST\Model\AbstractNode;
 use TimLappe\Elephactor\Domain\Php\AST\Model\ExpressionNode;
-use TimLappe\Elephactor\Domain\Php\AST\Model\Node;
-use TimLappe\Elephactor\Domain\Php\AST\Model\NodeKind;
 
-final readonly class MatchArmNode extends AbstractNode
+final class MatchArmNode extends AbstractNode
 {
     /**
      * @param list<ExpressionNode> $conditions
      */
     public function __construct(
-        private readonly array $conditions,
-        private readonly ExpressionNode $body
+        array $conditions,
+        ExpressionNode $body
     ) {
         parent::__construct();
+
+        foreach ($conditions as $condition) {
+            $this->children()->add('condition', $condition);
+        }
+
+        $this->children()->add('body', $body);
     }
 
     /**
@@ -26,27 +30,17 @@ final readonly class MatchArmNode extends AbstractNode
      */
     public function conditions(): array
     {
-        return $this->conditions;
+        return $this->children()->getAllOf('condition', ExpressionNode::class);
     }
 
     public function body(): ExpressionNode
     {
-        return $this->body;
+        return $this->children()->getOne('body', ExpressionNode::class) ?? throw new \RuntimeException('Match arm body not found');
     }
 
     public function isDefault(): bool
     {
-        return $this->conditions === [];
+        return $this->children()->getAllOf('condition', ExpressionNode::class) === [];
     }
 
-    /**
-     * @return list<Node>
-     */
-    public function children(): array
-    {
-        return [
-            ...$this->conditions,
-            $this->body,
-        ];
-    }
 }

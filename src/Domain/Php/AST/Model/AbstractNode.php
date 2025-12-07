@@ -4,14 +4,14 @@ declare(strict_types=1);
 
 namespace TimLappe\Elephactor\Domain\Php\AST\Model;
 
-abstract readonly class AbstractNode implements Node
+abstract class AbstractNode implements Node
 {
     /**
      * @var NodeCollection
      */
     private NodeCollection $children;
 
-    public function __construct() 
+    public function __construct()
     {
         $this->children = new NodeCollection();
     }

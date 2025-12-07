@@ -5,20 +5,18 @@ declare(strict_types=1);
 namespace TimLappe\Elephactor\Domain\Php\AST\Model\Statement;
 
 use TimLappe\Elephactor\Domain\Php\AST\Model\AbstractNode;
-use TimLappe\Elephactor\Domain\Php\AST\Model\Node;
-use TimLappe\Elephactor\Domain\Php\AST\Model\NodeKind;
 use TimLappe\Elephactor\Domain\Php\AST\Model\StatementNode;
 
-final readonly class DeclareStatementNode extends AbstractNode implements StatementNode
+final class DeclareStatementNode extends AbstractNode implements StatementNode
 {
     /**
      * @param list<DeclareDirectiveNode> $directives
      * @param list<StatementNode>        $blockStatements
      */
     public function __construct(
-        private readonly array $directives,
-        private readonly array $blockStatements = [],
-        private readonly ?StatementNode $singleStatement = null
+        array $directives,
+        array $blockStatements = [],
+        ?StatementNode $singleStatement = null
     ) {
         if ($directives === []) {
             throw new \InvalidArgumentException('Declare statement requires directives');
@@ -29,6 +27,18 @@ final readonly class DeclareStatementNode extends AbstractNode implements Statem
         }
 
         parent::__construct();
+
+        foreach ($directives as $directive) {
+            $this->children()->add('directive', $directive);
+        }
+
+        if ($singleStatement !== null) {
+            $this->children()->add('singleStatement', $singleStatement);
+        }
+
+        foreach ($blockStatements as $statement) {
+            $this->children()->add('blockStatement', $statement);
+        }
     }
 
     /**
@@ -36,7 +46,7 @@ final readonly class DeclareStatementNode extends AbstractNode implements Statem
      */
     public function directives(): array
     {
-        return $this->directives;
+        return $this->children()->getAllOf('directive', DeclareDirectiveNode::class);
     }
 
     /**
@@ -44,30 +54,16 @@ final readonly class DeclareStatementNode extends AbstractNode implements Statem
      */
     public function blockStatements(): array
     {
-        return $this->blockStatements;
+        return $this->children()->getAllOf('blockStatement', StatementNode::class);
     }
 
     public function singleStatement(): ?StatementNode
     {
-        return $this->singleStatement;
+        return $this->children()->getOne('singleStatement', StatementNode::class);
     }
 
     public function hasBlock(): bool
     {
-        return $this->blockStatements !== [];
-    }
-
-    /**
-     * @return list<Node>
-     */
-    public function children(): array
-    {
-        $children = $this->directives;
-
-        if ($this->singleStatement !== null) {
-            $children[] = $this->singleStatement;
-        }
-
-        return array_merge($children, $this->blockStatements);
+        return $this->children()->getAllOf('blockStatement', StatementNode::class) !== [];
     }
 }

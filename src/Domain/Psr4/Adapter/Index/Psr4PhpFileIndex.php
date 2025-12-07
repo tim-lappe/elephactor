@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace TimLappe\Elephactor\Domain\Psr4\Adapter\Index;
 
-use TimLappe\Elephactor\Domain\Php\Analysis\Model\ValueObjects\PhpNamespace;
 use TimLappe\Elephactor\Domain\Php\Index\FileIndex\Criteria\FilesContainNamespaceCriteria;
 use TimLappe\Elephactor\Domain\Php\Index\FileIndex\Criteria\PhpFileCriteria;
 use TimLappe\Elephactor\Domain\Php\Index\FileIndex\PhpFileIndex;
@@ -15,7 +14,6 @@ use TimLappe\Elephactor\Domain\Php\AST\Model\Value\Identifier;
 use TimLappe\Elephactor\Domain\Php\AST\Model\Value\QualifiedName;
 use TimLappe\Elephactor\Domain\Php\Index\FileIndex\Criteria\PhpFileObjectCriteria;
 use TimLappe\Elephactor\Domain\Php\Repository\PhpFileRepository;
-use TimLappe\Elephactor\Domain\Psr4\Model\Psr4ClassFile;
 
 final class Psr4PhpFileIndex implements PhpFileIndex
 {
@@ -50,12 +48,12 @@ final class Psr4PhpFileIndex implements PhpFileIndex
         return $this->namespaceFileMap;
     }
 
-    public function resolveNamespaceForDirectory(Directory $directory): ?PhpNamespace
+    public function resolveNamespaceForDirectory(Directory $directory): ?QualifiedName
     {
         return $this->autoloadMap->resolveNamespaceForDirectory($directory);
     }
 
-    private function buildNamespaceFileMap(Directory $directory, PhpNamespace $namespace): void
+    private function buildNamespaceFileMap(Directory $directory, QualifiedName $namespace): void
     {
         $phpFiles = $directory->childFiles()->filterByExtension('.php');
 
@@ -66,7 +64,7 @@ final class Psr4PhpFileIndex implements PhpFileIndex
         }
 
         foreach ($directory->childDirectories()->toArray() as $childDirectory) {
-            $childNamespace = $namespace->extend(new QualifiedName([new Identifier($childDirectory->name())]));
+            $childNamespace = $namespace->extend(new Identifier($childDirectory->name()));
             $this->buildNamespaceFileMap($childDirectory, $childNamespace);
         }
     }
@@ -86,7 +84,7 @@ final class Psr4PhpFileIndex implements PhpFileIndex
                     $matchingFiles->addAll($item->files());
                 }
 
-                if (!$criteria->exactMatch() && $criteria->namespace()->contains($item->namespace())) {
+                if (!$criteria->exactMatch() && $item->namespace()->startsWith($criteria->namespace())) {
                     $matchingFiles->addAll($item->files());
                 }
             }

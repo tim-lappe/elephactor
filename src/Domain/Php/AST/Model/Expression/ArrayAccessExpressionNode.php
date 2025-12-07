@@ -6,39 +6,30 @@ namespace TimLappe\Elephactor\Domain\Php\AST\Model\Expression;
 
 use TimLappe\Elephactor\Domain\Php\AST\Model\AbstractNode;
 use TimLappe\Elephactor\Domain\Php\AST\Model\ExpressionNode;
-use TimLappe\Elephactor\Domain\Php\AST\Model\Node;
-use TimLappe\Elephactor\Domain\Php\AST\Model\NodeKind;
 
 final class ArrayAccessExpressionNode extends AbstractNode implements ExpressionNode
 {
     public function __construct(
-        private readonly ExpressionNode $array,
-        private readonly ?ExpressionNode $offset = null
+        ExpressionNode $array,
+        ?ExpressionNode $offset = null
     ) {
-        parent::__construct(NodeKind::ARRAY_ACCESS_EXPRESSION);
+        parent::__construct();
+
+        $this->children()->add('array', $array);
+
+        if ($offset !== null) {
+            $this->children()->add('offset', $offset);
+        }
     }
 
     public function array(): ExpressionNode
     {
-        return $this->array;
+        return $this->children()->getOne('array', ExpressionNode::class) ?? throw new \RuntimeException('Array expression not found');
     }
 
     public function offset(): ?ExpressionNode
     {
-        return $this->offset;
+        return $this->children()->getOne('offset', ExpressionNode::class);
     }
 
-    /**
-     * @return list<Node>
-     */
-    public function children(): array
-    {
-        $children = [$this->array];
-
-        if ($this->offset !== null) {
-            $children[] = $this->offset;
-        }
-
-        return $children;
-    }
 }

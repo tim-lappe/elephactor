@@ -6,7 +6,7 @@ namespace TimLappe\Elephactor\Domain\Php\AST\Model\Attribute;
 
 use TimLappe\Elephactor\Domain\Php\AST\Model\AbstractNode;
 
-final readonly class AttributeGroupNode extends AbstractNode
+final class AttributeGroupNode extends AbstractNode
 {
     /**
      * @param list<AttributeNode> $attributes

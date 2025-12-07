@@ -9,11 +9,12 @@ use TimLappe\Elephactor\Domain\Php\AST\Model\ExpressionNode;
 use TimLappe\Elephactor\Domain\Php\AST\Model\Name\IdentifierNode;
 use TimLappe\Elephactor\Domain\Php\AST\Model\Value\Identifier;
 
-final readonly class ArgumentNode extends AbstractNode
+final class ArgumentNode extends AbstractNode
 {
     public function __construct(
         ExpressionNode $expression,
-        ?Identifier $name = null
+        ?Identifier $name = null,
+        private bool $isUnpacked = false
     ) {
         parent::__construct();
 
@@ -32,5 +33,10 @@ final readonly class ArgumentNode extends AbstractNode
     public function name(): ?IdentifierNode
     {
         return $this->children()->getOne('name', IdentifierNode::class);
+    }
+
+    public function isUnpacked(): bool
+    {
+        return $this->isUnpacked;
     }
 }

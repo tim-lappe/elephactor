@@ -14,8 +14,8 @@ final class NodeCollection
 
     /**
      * @template T of Node
-     * @param string $key
-     * @param class-string<T> $type
+     * @param  string          $key
+     * @param  class-string<T> $type
      * @return ?T
      */
     public function getOne(string $key, string $type): ?Node
@@ -36,8 +36,8 @@ final class NodeCollection
 
     /**
      * @template T of Node
-     * @param string $key
-     * @param class-string<T> $type
+     * @param  string          $key
+     * @param  class-string<T> $type
      * @return list<T>
      */
     public function getAllOf(string $key, string $type): array
@@ -45,11 +45,25 @@ final class NodeCollection
         /** @var list<T> $array */
         $array = array_map(fn (NodeCollectionItem $item) => $item->node(), array_values(array_filter($this->nodes, fn (NodeCollectionItem $item) => $item->key() === $key)));
 
-        if ($type !== null) {
-            $array = array_filter($array, fn (Node $node) => $node instanceof $type);
+        return array_values(array_filter($array, fn (Node $node) => $node instanceof $type));
+    }
+
+    /**
+     * @template T of Node
+     * @param  class-string<T> $type
+     * @return list<T>
+     */
+    public function getAllOfNestedByType(string $type): array
+    {
+        $result = [];
+        foreach ($this->nodes as $node) {
+            if ($node->node() instanceof $type) {
+                $result[] = $node->node();
+            }
+            $result = array_merge($result, $node->node()->children()->getAllOfNestedByType($type));
         }
 
-        return $array;
+        return $result;
     }
 
     public function add(string $key, Node $node): void
@@ -66,7 +80,7 @@ final class NodeCollection
 
 
     /**
-     * @param class-string<Node> $type
+     * @param  class-string<Node> $type
      * @return self
      */
     public function filterType(string $type): NodeCollection
@@ -82,7 +96,7 @@ final class NodeCollection
 
     /**
      * @template T of Node
-     * @param class-string<T> $type
+     * @param  class-string<T> $type
      * @return list<T>
      */
     public function filterTypeToArray(string $type): array
@@ -94,7 +108,7 @@ final class NodeCollection
 
     /**
      * @template T of Node
-     * @param class-string<T> $type
+     * @param  class-string<T> $type
      * @return ?T
      */
     public function firstOfType(string $type): ?Node
@@ -119,5 +133,13 @@ final class NodeCollection
     public function toArray(): array
     {
         return array_map(fn (NodeCollectionItem $item) => $item->node(), $this->nodes);
+    }
+
+    public function remove(string $key): void
+    {
+        $this->nodes = array_values(array_filter(
+            $this->nodes,
+            fn (NodeCollectionItem $item): bool => $item->key() !== $key,
+        ));
     }
 }

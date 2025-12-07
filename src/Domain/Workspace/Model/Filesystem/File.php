@@ -17,4 +17,6 @@ interface File
     public function writeContent(string $content): void;
 
     public function moveTo(Directory $newDirectory): void;
+
+    public function absolutePath(): AbsolutePath;
 }

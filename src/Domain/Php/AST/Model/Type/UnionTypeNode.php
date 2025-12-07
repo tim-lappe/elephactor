@@ -7,13 +7,13 @@ namespace TimLappe\Elephactor\Domain\Php\AST\Model\Type;
 use TimLappe\Elephactor\Domain\Php\AST\Model\AbstractNode;
 use TimLappe\Elephactor\Domain\Php\AST\Model\TypeNode;
 
-final readonly class UnionTypeNode extends AbstractNode implements TypeNode
+final class UnionTypeNode extends AbstractNode implements TypeNode
 {
     /**
      * @param list<TypeNode> $types
      */
     public function __construct(
-        private readonly array $types
+        array $types
     ) {
         if ($types === []) {
             throw new \InvalidArgumentException('Union type requires at least one referenced type');
@@ -22,7 +22,7 @@ final readonly class UnionTypeNode extends AbstractNode implements TypeNode
         parent::__construct();
 
         foreach ($types as $type) {
-            $this->children()->add($type);
+            $this->children()->add('type', $type);
         }
     }
 
@@ -31,6 +31,6 @@ final readonly class UnionTypeNode extends AbstractNode implements TypeNode
      */
     public function types(): array
     {
-        return $this->types;
+        return $this->children()->getAllOf('type', TypeNode::class);
     }
 }

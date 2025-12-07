@@ -6,17 +6,17 @@ namespace TimLappe\Elephactor\Domain\Php\AST\Model\Expression;
 
 use TimLappe\Elephactor\Domain\Php\AST\Model\AbstractNode;
 use TimLappe\Elephactor\Domain\Php\AST\Model\ExpressionNode;
-use TimLappe\Elephactor\Domain\Php\AST\Model\Node;
-use TimLappe\Elephactor\Domain\Php\AST\Model\NodeKind;
 use TimLappe\Elephactor\Domain\Php\AST\Model\Value\IncludeKind;
 
-final readonly class IncludeExpressionNode extends AbstractNode implements ExpressionNode
+final class IncludeExpressionNode extends AbstractNode implements ExpressionNode
 {
     public function __construct(
         private readonly IncludeKind $includeKind,
-        private readonly ExpressionNode $path
+        ExpressionNode $path
     ) {
         parent::__construct();
+
+        $this->children()->add('path', $path);
     }
 
     public function includeKind(): IncludeKind
@@ -26,14 +26,7 @@ final readonly class IncludeExpressionNode extends AbstractNode implements Expre
 
     public function path(): ExpressionNode
     {
-        return $this->path;
+        return $this->children()->getOne('path', ExpressionNode::class) ?? throw new \RuntimeException('Include path not found');
     }
 
-    /**
-     * @return list<Node>
-     */
-    public function children(): array
-    {
-        return [$this->path];
-    }
 }

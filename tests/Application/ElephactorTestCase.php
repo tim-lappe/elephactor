@@ -8,8 +8,6 @@ use PHPUnit\Framework\TestCase;
 use TimLappe\Elephactor\Adapter\Php\Ast\Nikic\Builder\NikicToDomain\NikicToDomainNodeMapper;
 use TimLappe\Elephactor\Adapter\Php\Ast\Nikic\Loader\NikicAstBuilder;
 use TimLappe\Elephactor\Application;
-use TimLappe\Elephactor\Domain\Php\Analysis\Analyser\FileAnalyser;
-use TimLappe\Elephactor\Domain\Php\Analysis\Model\ValueObjects\PhpNamespace;
 use TimLappe\Elephactor\Domain\Php\AST\Model\Value\QualifiedName;
 use TimLappe\Elephactor\Domain\Php\AST\Model\Value\Identifier;
 use TimLappe\Elephactor\Domain\Workspace\Model\Environment;
@@ -38,12 +36,11 @@ abstract class ElephactorTestCase extends TestCase
         $this->sourceDirectory = $workDir->createOrGetDirecotry('src');
 
         $psr4AutoloadMap = new Psr4AutoloadMap();
-        $psr4AutoloadMap->add(new PhpNamespace(new QualifiedName([new Identifier('VirtualTestNamespace')])), $this->sourceDirectory);
+        $psr4AutoloadMap->add(new QualifiedName([new Identifier('VirtualTestNamespace')]), $this->sourceDirectory);
 
         $nikicAstBuilder = new NikicAstBuilder(new NikicToDomainNodeMapper(), $this->workspace->environment()->phpVersion());
 
-        $fileAnalyser = FileAnalyser::createDefault();
-        $psr4FileIndex = new Psr4PhpFileIndex($psr4AutoloadMap, new PhpFileRepository($nikicAstBuilder, $fileAnalyser));
+        $psr4FileIndex = new Psr4PhpFileIndex($psr4AutoloadMap, new PhpFileRepository($nikicAstBuilder));
         $psr4FileIndex->reload();
 
         $this->workspace->registerPhpFileIndex($psr4FileIndex);

@@ -6,16 +6,20 @@ namespace TimLappe\Elephactor\Domain\Php\AST\Model\Expression;
 
 use TimLappe\Elephactor\Domain\Php\AST\Model\AbstractNode;
 use TimLappe\Elephactor\Domain\Php\AST\Model\ExpressionNode;
-use TimLappe\Elephactor\Domain\Php\AST\Model\Node;
-use TimLappe\Elephactor\Domain\Php\AST\Model\NodeKind;
 
-final readonly class ListItemNode extends AbstractNode
+final class ListItemNode extends AbstractNode
 {
     public function __construct(
         private readonly ?ExpressionNode $key,
         private readonly ExpressionNode $value
     ) {
         parent::__construct();
+
+        if ($this->key !== null) {
+            $this->children()->add('key', $this->key);
+        }
+
+        $this->children()->add('value', $this->value);
     }
 
     public function key(): ?ExpressionNode
@@ -28,19 +32,4 @@ final readonly class ListItemNode extends AbstractNode
         return $this->value;
     }
 
-    /**
-     * @return list<Node>
-     */
-    public function children(): array
-    {
-        $children = [];
-
-        if ($this->key !== null) {
-            $children[] = $this->key;
-        }
-
-        $children[] = $this->value;
-
-        return $children;
-    }
 }

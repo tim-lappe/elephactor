@@ -14,7 +14,7 @@ use TimLappe\Elephactor\Domain\Php\AST\Model\TypeNode;
 use TimLappe\Elephactor\Domain\Php\AST\Model\Value\DocBlock;
 use TimLappe\Elephactor\Domain\Php\AST\Model\Value\Identifier;
 
-final readonly class FunctionDeclarationNode extends AbstractNode implements DeclarationNode
+final class FunctionDeclarationNode extends AbstractNode implements DeclarationNode
 {
     /**
      * @param list<AttributeGroupNode> $attributes

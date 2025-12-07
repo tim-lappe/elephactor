@@ -50,7 +50,7 @@ readonly class QualifiedName
         return new QualifiedName(
             array_map(
                 static fn (string $part): Identifier => new Identifier($part),
-                explode('\\', $name),
+                array_values(array_filter(explode('\\', $name), static fn (string $part): bool => $part !== '')),
             ),
         );
     }

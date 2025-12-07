@@ -12,43 +12,45 @@ use TimLappe\Elephactor\Domain\Php\AST\Model\ExpressionNode;
 use TimLappe\Elephactor\Domain\Php\AST\Model\Value\Identifier;
 use TimLappe\Elephactor\Domain\Php\AST\Model\Value\QualifiedName;
 
-final readonly class StaticCallExpressionNode extends AbstractNode implements ExpressionNode
+final class StaticCallExpressionNode extends AbstractNode implements ExpressionNode
 {
-    private QualifiedNameNode|ExpressionNode $classReference;
-    private IdentifierNode|ExpressionNode $method;
     /**
      * @param list<ArgumentNode> $arguments
      */
     public function __construct(
         QualifiedName|ExpressionNode $classReference,
         Identifier|ExpressionNode $method,
-        private readonly array $arguments
+        array $arguments
     ) {
         parent::__construct();
 
-        $this->classReference = $classReference instanceof QualifiedName
+        $classReferenceNode = $classReference instanceof QualifiedName
             ? new QualifiedNameNode($classReference)
             : $classReference;
-        $this->method = $method instanceof Identifier
+        $methodNode = $method instanceof Identifier
             ? new IdentifierNode($method)
             : $method;
 
-        $this->children()->add($this->classReference);
-        $this->children()->add($this->method);
+        $this->children()->add('classReference', $classReferenceNode);
+        $this->children()->add('method', $methodNode);
 
-        foreach ($this->arguments as $argument) {
-            $this->children()->add($argument);
+        foreach ($arguments as $argument) {
+            $this->children()->add('argument', $argument);
         }
     }
 
     public function classReference(): QualifiedNameNode|ExpressionNode
     {
-        return $this->classReference;
+        return $this->children()->getOne('classReference', QualifiedNameNode::class)
+            ?? $this->children()->getOne('classReference', ExpressionNode::class)
+            ?? throw new \RuntimeException('Class reference not found');
     }
 
     public function method(): IdentifierNode|ExpressionNode
     {
-        return $this->method;
+        return $this->children()->getOne('method', IdentifierNode::class)
+            ?? $this->children()->getOne('method', ExpressionNode::class)
+            ?? throw new \RuntimeException('Method not found');
     }
 
     /**
@@ -56,6 +58,6 @@ final readonly class StaticCallExpressionNode extends AbstractNode implements Ex
      */
     public function arguments(): array
     {
-        return $this->arguments;
+        return $this->children()->getAllOf('argument', ArgumentNode::class);
     }
 }

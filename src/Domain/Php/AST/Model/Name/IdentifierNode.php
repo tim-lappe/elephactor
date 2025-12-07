@@ -7,7 +7,7 @@ namespace TimLappe\Elephactor\Domain\Php\AST\Model\Name;
 use TimLappe\Elephactor\Domain\Php\AST\Model\AbstractNode;
 use TimLappe\Elephactor\Domain\Php\AST\Model\Value\Identifier;
 
-readonly class IdentifierNode extends AbstractNode
+class IdentifierNode extends AbstractNode
 {
     public function __construct(
         private Identifier $identifier,
@@ -18,6 +18,11 @@ readonly class IdentifierNode extends AbstractNode
     public function identifier(): Identifier
     {
         return $this->identifier;
+    }
+
+    public function replaceIdentifier(Identifier $identifier): void
+    {
+        $this->identifier = $identifier;
     }
 
     public function value(): string

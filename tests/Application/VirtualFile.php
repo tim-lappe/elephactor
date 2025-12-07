@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace TimLappe\ElephactorTests\Application;
 
+use TimLappe\Elephactor\Domain\Workspace\Model\Filesystem\AbsolutePath;
 use TimLappe\Elephactor\Domain\Workspace\Model\Filesystem\Directory;
 use TimLappe\Elephactor\Domain\Workspace\Model\Filesystem\File;
 
@@ -15,6 +16,11 @@ final class VirtualFile implements File
         private string $content,
     ) {
         $this->directory->addFile($this);
+    }
+
+    public function absolutePath(): AbsolutePath
+    {
+        return new VirtualAbsolutePath($this->directory->absolutePath()->value() . '/' . $this->name);
     }
 
     public function content(): string

@@ -6,6 +6,6 @@ namespace TimLappe\Elephactor\Domain\Php\AST\Model\UseTrait;
 
 use TimLappe\Elephactor\Domain\Php\AST\Model\Name\IdentifierNode;
 
-final readonly class TraitAliasIdentifierNode extends IdentifierNode
+final class TraitAliasIdentifierNode extends IdentifierNode
 {
 }

@@ -7,13 +7,15 @@ namespace TimLappe\Elephactor\Command;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputArgument;
 use Symfony\Component\Console\Input\InputInterface;
+use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\OutputInterface;
 use TimLappe\Elephactor\Application;
 use TimLappe\Elephactor\Domain\Php\Index\ClassIndex\Criteria\ClassNameCriteria;
 use TimLappe\Elephactor\Domain\Php\Refactoring\Commands\MoveFile;
-use TimLappe\Elephactor\Domain\Psr4\Model\Psr4ClassFile;
-use TimLappe\Elephactor\Adapter\Workspace\FsDirectory;
-use TimLappe\Elephactor\Domain\Php\AST\Model\Value\QualifiedName;
+use TimLappe\Elephactor\Domain\Php\Index\ClassIndex\Criteria\ClassFilePathCriteria;
+use TimLappe\Elephactor\Adapter\Workspace\FsAbsolutePath;
+use TimLappe\Elephactor\Domain\Php\AST\Model\Value\Identifier;
+use TimLappe\Elephactor\Domain\Workspace\Model\Filesystem\Directory;
 
 use function sprintf;
 
@@ -23,50 +25,56 @@ class MoveClass extends Command
     {
         $this->setName('class:move')
             ->setDescription('Move a class')
-            ->addArgument('class-name', InputArgument::REQUIRED, 'The name of the class to move')
-            ->addArgument('new-directory', InputArgument::REQUIRED, 'The new directory of the class');
+            ->addOption('dry-run', null, InputOption::VALUE_NONE, 'Dry run the command')
+            ->addArgument('class', InputArgument::REQUIRED, 'The path or class name of the class to move')
+            ->addArgument('target-directory', InputArgument::REQUIRED, 'The target directory of the class');
     }
 
     protected function execute(InputInterface $input, OutputInterface $output): int
     {
-        $className = $input->getArgument('class-name');
-        $newDirectory = $input->getArgument('new-directory');
-
-        if (!is_string($className) || !is_string($newDirectory)) {
-            throw new \InvalidArgumentException('Class name and new directory must be strings');
+        $dryRun = $input->getOption('dry-run');
+        if (!is_bool($dryRun)) {
+            throw new \InvalidArgumentException('Dry run must be a boolean');
         }
 
-        $className = trim($className);
-        $className = trim($className, '\\');
-        $className = QualifiedName::fromString($className);
+        $classSource = $input->getArgument('class');
+        $targetDirectoryStringPath = $input->getArgument('target-directory');
 
-        $newDirectory = trim($newDirectory);
-        $output->writeln(sprintf('Moving class %s to directory %s', $className, $newDirectory));
+        if (!is_string($classSource) || !is_string($targetDirectoryStringPath)) {
+            throw new \InvalidArgumentException('Class name and target directory must be strings');
+        }
+
+        $targetDirectory = trim($targetDirectoryStringPath);
+        $targetDirectory = new FsAbsolutePath($targetDirectoryStringPath);
+
+        $output->writeln(sprintf('Moving class %s to directory %s', $classSource, $targetDirectory));
 
         $application = $this->getApplication();
         if (!$application instanceof Application) {
             throw new \RuntimeException('Application is not an instance of Application');
         }
 
-        $class = $application->workspace()->classLikeIndex()->find(new ClassNameCriteria($className))->first();
-        if (!$class instanceof Psr4ClassFile) {
-            throw new \RuntimeException(sprintf('Class %s not found in workspace', $className));
+        $class = $application->workspace()->classLikeIndex()->find(new ClassFilePathCriteria(new FsAbsolutePath($classSource)))->first();
+        if ($class === null) {
+            throw new \RuntimeException(sprintf('Class %s not found in workspace', $classSource));
         }
 
-        $pwd = getcwd();
-        if ($pwd !== false && !str_starts_with($newDirectory, '/')) {
-            $newDirectory = $pwd . '/' . trim($newDirectory, '/');
+        if (Identifier::valid($classSource)) {
+            $class = $application->workspace()->classLikeIndex()->find(new ClassNameCriteria($classSource))->first();
+            if ($class === null) {
+                throw new \RuntimeException(sprintf('Class %s not found in workspace', $classSource));
+            }
         }
 
-        $newDirectory = realpath($newDirectory);
-        if ($newDirectory === false) {
-            throw new \RuntimeException(sprintf('Directory %s does not exist', $newDirectory));
+        $targetDirectory = $application->workspace()->workspaceDirectory()->find($targetDirectory);
+        if (!$targetDirectory instanceof Directory) {
+            throw new \RuntimeException(sprintf('Directory %s not found in workspace', $targetDirectoryStringPath));
         }
-
-        $fsDirectory = new FsDirectory($newDirectory);
 
         $refactoringExecutor = $application->refactoringExecutor();
-        $refactoringExecutor->handle(new MoveFile($class->file(), $fsDirectory));
+        $report = $refactoringExecutor->handle(new MoveFile($class->file(), $targetDirectory), $dryRun);
+        $reportPrinter = new ReportPrinter($input, $output);
+        $reportPrinter->print($report);
 
         return Command::SUCCESS;
     }

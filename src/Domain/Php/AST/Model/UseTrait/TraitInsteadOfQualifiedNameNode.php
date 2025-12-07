@@ -6,6 +6,6 @@ namespace TimLappe\Elephactor\Domain\Php\AST\Model\UseTrait;
 
 use TimLappe\Elephactor\Domain\Php\AST\Model\Name\QualifiedNameNode;
 
-final readonly class TraitInsteadOfQualifiedNameNode extends QualifiedNameNode
+final class TraitInsteadOfQualifiedNameNode extends QualifiedNameNode
 {
 }

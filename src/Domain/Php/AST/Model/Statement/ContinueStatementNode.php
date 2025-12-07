@@ -8,7 +8,7 @@ use TimLappe\Elephactor\Domain\Php\AST\Model\AbstractNode;
 use TimLappe\Elephactor\Domain\Php\AST\Model\ExpressionNode;
 use TimLappe\Elephactor\Domain\Php\AST\Model\StatementNode;
 
-final readonly class ContinueStatementNode extends AbstractNode implements StatementNode
+final class ContinueStatementNode extends AbstractNode implements StatementNode
 {
     public function __construct(
         ?ExpressionNode $levels = null
@@ -16,12 +16,12 @@ final readonly class ContinueStatementNode extends AbstractNode implements State
         parent::__construct();
 
         if ($levels !== null) {
-            $this->children()->add($levels);
+            $this->children()->add('levels', $levels);
         }
     }
 
     public function levels(): ?ExpressionNode
     {
-        return $this->children()->firstOfType(ExpressionNode::class);
+        return $this->children()->getOne('levels', ExpressionNode::class);
     }
 }

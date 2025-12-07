@@ -4,7 +4,9 @@ declare(strict_types=1);
 
 namespace TimLappe\Elephactor\Domain\Php\AST\Model;
 
-final readonly class FileNode extends AbstractNode
+use TimLappe\Elephactor\Domain\Php\AST\Model\Statement\UseStatementNode;
+
+final class FileNode extends AbstractNode
 {
     /**
      * @param list<StatementNode> $statements
@@ -15,15 +17,23 @@ final readonly class FileNode extends AbstractNode
         parent::__construct();
 
         foreach ($statements as $statement) {
-            $this->children()->add($statement);
+            $this->children()->add('statement', $statement);
         }
     }
 
     /**
-     * @return NodeCollection
+     * @return list<ClassLikeNode>
      */
-    public function classLikeDeclerations(): NodeCollection
+    public function classLikeDeclerations(): array
     {
-        return $this->children()->filterType(ClassLikeNode::class);
+        return $this->children()->getAllOfNestedByType(ClassLikeNode::class);
+    }
+
+    /**
+     * @return list<UseStatementNode>
+     */
+    public function useStatements(): array
+    {
+        return $this->children()->getAllOfNestedByType(UseStatementNode::class);
     }
 }
