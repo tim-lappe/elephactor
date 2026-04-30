@@ -1,0 +1,28 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "compile extension",
+      "type": "npm",
+      "script": "compile",
+      "path": "vscode-elephactor",
+      "problemMatcher": "$tsc",
+      "group": "build"
+    },
+    {
+      "label": "watch extension",
+      "type": "npm",
+      "script": "watch",
+      "path": "vscode-elephactor",
+      "problemMatcher": "$tsc-watch",
+      "isBackground": true,
+      "presentation": {
+        "reveal": "never"
+      },
+      "group": {
+        "kind": "build",
+        "isDefault": true
+      }
+    }
+  ]
+}

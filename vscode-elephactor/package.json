@@ -1,0 +1,51 @@
+{
+  "name": "vscode-elephactor",
+  "displayName": "Elephactor",
+  "description": "Developer playground for the Elephactor VS Code tooling.",
+  "version": "0.0.1",
+  "publisher": "elephactor",
+  "type": "commonjs",
+  "main": "./dist/extension.js",
+  "scripts": {
+    "vscode:prepublish": "npm run compile",
+    "compile": "tsc -p ./",
+    "watch": "tsc -watch -p ./",
+    "check": "tsc --noEmit -p ./",
+    "package": "npm run compile && vsce package",
+    "test": "npm run compile && vscode-test --extensionDevelopmentPath=. --extensionTestsPath=./dist/test/suite/index.js"
+  },
+  "keywords": [
+    "vscode",
+    "elephactor"
+  ],
+  "license": "MIT",
+  "engines": {
+    "vscode": "^1.95.0"
+  },
+  "categories": [
+    "Other"
+  ],
+  "activationEvents": [
+    "onStartupFinished"
+  ],
+  "contributes": {
+    "commands": [
+      {
+        "command": "vscode-elephactor.installElephactor",
+        "title": "Elephactor: Install Elephactor"
+      }
+    ]
+  },
+  "devDependencies": {
+    "@types/glob": "^8.1.0",
+    "@types/mocha": "^10.0.10",
+    "@types/node": "^18.19.130",
+    "@types/vscode": "^1.106.0",
+    "@vscode/test-cli": "^0.0.12",
+    "@vscode/test-electron": "^2.5.2",
+    "@vscode/vsce": "^3.7.0",
+    "glob": "^8.1.0",
+    "mocha": "^11.7.5",
+    "typescript": "^5.9.3"
+  }
+}

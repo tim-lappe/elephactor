@@ -1,0 +1,32 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Run Extension",
+      "type": "extensionHost",
+      "request": "launch",
+      "runtimeExecutable": "${execPath}",
+      "args": [
+        "--extensionDevelopmentPath=${workspaceFolder}/vscode-elephactor"
+      ],
+      "outFiles": [
+        "${workspaceFolder}/vscode-elephactor/dist/**/*.js"
+      ],
+      "preLaunchTask": "watch extension"
+    },
+    {
+      "name": "Extension Tests",
+      "type": "extensionHost",
+      "request": "launch",
+      "runtimeExecutable": "${execPath}",
+      "args": [
+        "--extensionDevelopmentPath=${workspaceFolder}/vscode-elephactor",
+        "--extensionTestsPath=${workspaceFolder}/vscode-elephactor/dist/test/suite/index.js"
+      ],
+      "outFiles": [
+        "${workspaceFolder}/vscode-elephactor/dist/**/*.js"
+      ],
+      "preLaunchTask": "compile extension"
+    }
+  ]
+}
