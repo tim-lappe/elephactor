@@ -13,9 +13,12 @@ use TimLappe\Elephactor\Domain\Php\AST\Model\Statement\DeclareDirectiveNode;
 use TimLappe\Elephactor\Domain\Php\AST\Model\Statement\StaticVariableNode;
 use TimLappe\Elephactor\Domain\Php\AST\Model\Statement\UseClauseNode;
 use TimLappe\Elephactor\Domain\Php\AST\Model\Value\DocBlock;
+use TimLappe\Elephactor\Adapter\Php\Ast\Nikic\WhitespaceAttribute;
 
 final class NikicStatementMapper implements StatementMapper
 {
+    use AdapterNodeReuserTrait;
+
     public function __construct(
         private readonly ExpressionMapper $expressionMapper,
         private readonly ValueMapper $valueMapper,
@@ -33,8 +36,18 @@ final class NikicStatementMapper implements StatementMapper
         $result = [];
 
         foreach ($statements as $statement) {
-            foreach ($this->buildStatement($statement) as $built) {
-                $result[] = $built;
+            foreach ($this->buildStatement($statement) as $node) {
+                $final = $this->reuseAdapterNode($statement, $node);
+
+                $extra = 0;
+                if ($statement instanceof Ast\AbstractNode) {
+                    $extra = $statement->leadingExtraNewlinesBefore();
+                }
+                if ($extra > 0) {
+                    WhitespaceAttribute::set($final, $extra);
+                }
+
+                $result[] = $final;
             }
         }
 
@@ -46,7 +59,7 @@ final class NikicStatementMapper implements StatementMapper
      */
     private function buildStatement(Ast\StatementNode $statement): array
     {
-        return match (true) {
+        $built = match (true) {
             $statement instanceof Ast\Statement\NamespaceDefinitionNode => [$this->buildNamespaceDefinition($statement)],
             $statement instanceof Ast\Statement\UseStatementNode => $this->buildUseStatement($statement),
             $statement instanceof Ast\Declaration\ConstDeclarationNode => [$this->buildConstDeclaration($statement)],
@@ -79,6 +92,8 @@ final class NikicStatementMapper implements StatementMapper
             $statement instanceof Ast\Statement\HaltCompilerStatementNode => [$this->buildHaltCompilerStatement($statement)],
             default => throw new \RuntimeException('Unsupported statement: ' . $statement::class),
         };
+
+        return $built;
     }
 
     private function buildNamespaceDefinition(Ast\Statement\NamespaceDefinitionNode $statement): Stmt\Namespace_
@@ -129,24 +144,30 @@ final class NikicStatementMapper implements StatementMapper
      */
     private function buildUseClause(UseClauseNode $clause, int $type): Node\UseItem
     {
-        return new Node\UseItem(
-            $this->valueMapper->buildQualifiedName($clause->name()->qualifiedName()),
-            $clause->alias() !== null ? $this->valueMapper->buildIdentifier($clause->alias()->identifier()) : null,
-            $type,
+        return $this->reuseAdapterNode(
+            $clause,
+            new Node\UseItem(
+                $this->valueMapper->buildQualifiedName($clause->name()->qualifiedName()),
+                $clause->alias() !== null ? $this->valueMapper->buildIdentifier($clause->alias()->identifier()) : null,
+                $type,
+            ),
         );
     }
 
     private function buildConstDeclaration(Ast\Declaration\ConstDeclarationNode $const): Stmt\Const_
     {
         $elements = array_map(
-            fn (Ast\Declaration\ConstElementNode $element): Const_ => new Const_(
-                $this->valueMapper->buildIdentifier($element->name()->identifier()),
-                $this->expressionMapper->buildExpression($element->value()),
+            fn (Ast\Declaration\ConstElementNode $element): Const_ => $this->reuseAdapterNode(
+                $element,
+                new Const_(
+                    $this->valueMapper->buildIdentifier($element->name()->identifier()),
+                    $this->expressionMapper->buildExpression($element->value()),
+                ),
             ),
             $const->elements(),
         );
 
-        return new Stmt\Const_($elements);
+        return $this->reuseAdapterNode($const, new Stmt\Const_($elements));
     }
 
     private function buildFunctionDeclaration(Ast\Declaration\FunctionDeclarationNode $function): Stmt\Function_
@@ -164,7 +185,7 @@ final class NikicStatementMapper implements StatementMapper
 
         $this->setDocComment($node, $function->docBlock());
 
-        return $node;
+        return $this->reuseAdapterNode($function, $node);
     }
 
     private function buildClassDeclaration(Ast\Declaration\ClassDeclarationNode $class): Stmt\Class_
@@ -185,7 +206,7 @@ final class NikicStatementMapper implements StatementMapper
 
         $this->setDocComment($node, $class->docBlock());
 
-        return $node;
+        return $this->reuseAdapterNode($class, $node);
     }
 
     private function buildInterfaceDeclaration(Ast\Declaration\InterfaceDeclarationNode $interface): Stmt\Interface_
@@ -204,7 +225,7 @@ final class NikicStatementMapper implements StatementMapper
 
         $this->setDocComment($node, $interface->docBlock());
 
-        return $node;
+        return $this->reuseAdapterNode($interface, $node);
     }
 
     private function buildTraitDeclaration(Ast\Declaration\TraitDeclarationNode $trait): Stmt\Trait_
@@ -219,7 +240,7 @@ final class NikicStatementMapper implements StatementMapper
 
         $this->setDocComment($node, $trait->docBlock());
 
-        return $node;
+        return $this->reuseAdapterNode($trait, $node);
     }
 
     private function buildEnumDeclaration(Ast\Declaration\EnumDeclarationNode $enum): Stmt\Enum_
@@ -239,146 +260,191 @@ final class NikicStatementMapper implements StatementMapper
 
         $this->setDocComment($node, $enum->docBlock());
 
-        return $node;
+        return $this->reuseAdapterNode($enum, $node);
     }
 
     private function buildReturnStatement(Ast\Statement\ReturnStatementNode $statement): Stmt\Return_
     {
-        return new Stmt\Return_(
-            $statement->expression() !== null ? $this->expressionMapper->buildExpression($statement->expression()) : null,
+        return $this->reuseAdapterNode(
+            $statement,
+            new Stmt\Return_(
+                $statement->expression() !== null ? $this->expressionMapper->buildExpression($statement->expression()) : null,
+            ),
         );
     }
 
     private function buildBreakStatement(Ast\Statement\BreakStatementNode $statement): Stmt\Break_
     {
-        return new Stmt\Break_(
-            $statement->levels() !== null ? $this->expressionMapper->buildExpression($statement->levels()) : null,
+        return $this->reuseAdapterNode(
+            $statement,
+            new Stmt\Break_(
+                $statement->levels() !== null ? $this->expressionMapper->buildExpression($statement->levels()) : null,
+            ),
         );
     }
 
     private function buildContinueStatement(Ast\Statement\ContinueStatementNode $statement): Stmt\Continue_
     {
-        return new Stmt\Continue_(
-            $statement->levels() !== null ? $this->expressionMapper->buildExpression($statement->levels()) : null,
+        return $this->reuseAdapterNode(
+            $statement,
+            new Stmt\Continue_(
+                $statement->levels() !== null ? $this->expressionMapper->buildExpression($statement->levels()) : null,
+            ),
         );
     }
 
     private function buildExpressionStatement(Ast\Statement\ExpressionStatementNode $statement): Stmt\Expression
     {
-        return new Stmt\Expression($this->expressionMapper->buildExpression($statement->expression()));
+        return $this->reuseAdapterNode(
+            $statement,
+            new Stmt\Expression($this->expressionMapper->buildExpression($statement->expression())),
+        );
     }
 
     private function buildThrowStatement(Ast\Statement\ThrowStatementNode $statement): Stmt\Expression
     {
-        return new Stmt\Expression(
-            new Expr\Throw_($this->expressionMapper->buildExpression($statement->expression())),
+        return $this->reuseAdapterNode(
+            $statement,
+            new Stmt\Expression(
+                new Expr\Throw_($this->expressionMapper->buildExpression($statement->expression())),
+            ),
         );
     }
 
     private function buildIfStatement(Ast\Statement\IfStatementNode $statement): Stmt\If_
     {
-        return new Stmt\If_(
-            $this->expressionMapper->buildExpression($statement->condition()),
-            [
-                'stmts' => $this->buildStatements($statement->ifStatements()),
-                'elseifs' => array_map(
-                    fn (Ast\Statement\ElseIfClauseNode $clause): Stmt\ElseIf_ => $this->buildElseIfClause($clause),
-                    $statement->elseIfClauses(),
-                ),
-                'else' => $statement->elseClause() !== null ? $this->buildElseClause($statement->elseClause()) : null,
-            ],
+        return $this->reuseAdapterNode(
+            $statement,
+            new Stmt\If_(
+                $this->expressionMapper->buildExpression($statement->condition()),
+                [
+                    'stmts' => $this->buildStatements($statement->ifStatements()),
+                    'elseifs' => array_map(
+                        fn (Ast\Statement\ElseIfClauseNode $clause): Stmt\ElseIf_ => $this->buildElseIfClause($clause),
+                        $statement->elseIfClauses(),
+                    ),
+                    'else' => $statement->elseClause() !== null ? $this->buildElseClause($statement->elseClause()) : null,
+                ],
+            ),
         );
     }
 
     private function buildElseIfClause(Ast\Statement\ElseIfClauseNode $clause): Stmt\ElseIf_
     {
-        return new Stmt\ElseIf_(
-            $this->expressionMapper->buildExpression($clause->condition()),
-            $this->buildStatements($clause->statements()),
+        return $this->reuseAdapterNode(
+            $clause,
+            new Stmt\ElseIf_(
+                $this->expressionMapper->buildExpression($clause->condition()),
+                $this->buildStatements($clause->statements()),
+            ),
         );
     }
 
     private function buildElseClause(Ast\Statement\ElseClauseNode $clause): Stmt\Else_
     {
-        return new Stmt\Else_($this->buildStatements($clause->statements()));
+        return $this->reuseAdapterNode(
+            $clause,
+            new Stmt\Else_($this->buildStatements($clause->statements())),
+        );
     }
 
     private function buildWhileStatement(Ast\Statement\WhileStatementNode $statement): Stmt\While_
     {
-        return new Stmt\While_(
-            $this->expressionMapper->buildExpression($statement->condition()),
-            $this->buildStatements($statement->statements()),
+        return $this->reuseAdapterNode(
+            $statement,
+            new Stmt\While_(
+                $this->expressionMapper->buildExpression($statement->condition()),
+                $this->buildStatements($statement->statements()),
+            ),
         );
     }
 
     private function buildDoWhileStatement(Ast\Statement\DoWhileStatementNode $statement): Stmt\Do_
     {
-        return new Stmt\Do_(
-            $this->expressionMapper->buildExpression($statement->condition()),
-            $this->buildStatements($statement->statements()),
+        return $this->reuseAdapterNode(
+            $statement,
+            new Stmt\Do_(
+                $this->expressionMapper->buildExpression($statement->condition()),
+                $this->buildStatements($statement->statements()),
+            ),
         );
     }
 
     private function buildForStatement(Ast\Statement\ForStatementNode $statement): Stmt\For_
     {
-        return new Stmt\For_([
-            'init' => array_map(
-                fn (Ast\ExpressionNode $expr): Expr => $this->expressionMapper->buildExpression($expr),
-                $statement->initializers(),
-            ),
-            'cond' => array_map(
-                fn (Ast\ExpressionNode $expr): Expr => $this->expressionMapper->buildExpression($expr),
-                $statement->conditions(),
-            ),
-            'loop' => array_map(
-                fn (Ast\ExpressionNode $expr): Expr => $this->expressionMapper->buildExpression($expr),
-                $statement->loopExpressions(),
-            ),
-            'stmts' => $this->buildStatements($statement->statements()),
-        ]);
+        return $this->reuseAdapterNode(
+            $statement,
+            new Stmt\For_([
+                'init' => array_map(
+                    fn (Ast\ExpressionNode $expr): Expr => $this->expressionMapper->buildExpression($expr),
+                    $statement->initializers(),
+                ),
+                'cond' => array_map(
+                    fn (Ast\ExpressionNode $expr): Expr => $this->expressionMapper->buildExpression($expr),
+                    $statement->conditions(),
+                ),
+                'loop' => array_map(
+                    fn (Ast\ExpressionNode $expr): Expr => $this->expressionMapper->buildExpression($expr),
+                    $statement->loopExpressions(),
+                ),
+                'stmts' => $this->buildStatements($statement->statements()),
+            ]),
+        );
     }
 
     private function buildForeachStatement(Ast\Statement\ForeachStatementNode $statement): Stmt\Foreach_
     {
-        return new Stmt\Foreach_(
-            $this->expressionMapper->buildExpression($statement->source()),
-            $this->expressionMapper->buildExpression($statement->value()),
-            [
-                'keyVar' => $statement->key() !== null ? $this->expressionMapper->buildExpression($statement->key()) : null,
-                'byRef' => $statement->iteratesByReference(),
-                'stmts' => $this->buildStatements($statement->statements()),
-            ],
+        return $this->reuseAdapterNode(
+            $statement,
+            new Stmt\Foreach_(
+                $this->expressionMapper->buildExpression($statement->source()),
+                $this->expressionMapper->buildExpression($statement->value()),
+                [
+                    'keyVar' => $statement->key() !== null ? $this->expressionMapper->buildExpression($statement->key()) : null,
+                    'byRef' => $statement->iteratesByReference(),
+                    'stmts' => $this->buildStatements($statement->statements()),
+                ],
+            ),
         );
     }
 
     private function buildSwitchStatement(Ast\Statement\SwitchStatementNode $statement): Stmt\Switch_
     {
-        return new Stmt\Switch_(
-            $this->expressionMapper->buildExpression($statement->expression()),
-            array_map(
-                fn (Ast\Statement\SwitchCaseNode $case): Stmt\Case_ => $this->buildSwitchCase($case),
-                $statement->cases(),
+        return $this->reuseAdapterNode(
+            $statement,
+            new Stmt\Switch_(
+                $this->expressionMapper->buildExpression($statement->expression()),
+                array_map(
+                    fn (Ast\Statement\SwitchCaseNode $case): Stmt\Case_ => $this->buildSwitchCase($case),
+                    $statement->cases(),
+                ),
             ),
         );
     }
 
     private function buildSwitchCase(Ast\Statement\SwitchCaseNode $case): Stmt\Case_
     {
-        return new Stmt\Case_(
-            $case->condition() !== null ? $this->expressionMapper->buildExpression($case->condition()) : null,
-            $this->buildStatements($case->statements()),
+        return $this->reuseAdapterNode(
+            $case,
+            new Stmt\Case_(
+                $case->condition() !== null ? $this->expressionMapper->buildExpression($case->condition()) : null,
+                $this->buildStatements($case->statements()),
+            ),
         );
     }
 
     private function buildTryStatement(Ast\Statement\TryStatementNode $statement): Stmt\TryCatch
     {
-        return new Stmt\TryCatch(
-            $this->buildStatements($statement->tryStatements()),
-            array_map(
-                fn (Ast\Statement\CatchClauseNode $clause): Stmt\Catch_ => $this->buildCatchClause($clause),
-                $statement->catchClauses(),
+        return $this->reuseAdapterNode(
+            $statement,
+            new Stmt\TryCatch(
+                $this->buildStatements($statement->tryStatements()),
+                array_map(
+                    fn (Ast\Statement\CatchClauseNode $clause): Stmt\Catch_ => $this->buildCatchClause($clause),
+                    $statement->catchClauses(),
+                ),
+                $statement->finallyClause() !== null ? $this->buildFinallyClause($statement->finallyClause()) : null,
             ),
-            $statement->finallyClause() !== null ? $this->buildFinallyClause($statement->finallyClause()) : null,
         );
     }
 
@@ -396,67 +462,91 @@ final class NikicStatementMapper implements StatementMapper
             $clause->types(),
         );
 
-        return new Stmt\Catch_(
-            $types,
-            new Expr\Variable($clause->variable()->value()),
-            $this->buildStatements($clause->statements()),
+        return $this->reuseAdapterNode(
+            $clause,
+            new Stmt\Catch_(
+                $types,
+                new Expr\Variable($clause->variable()->value()),
+                $this->buildStatements($clause->statements()),
+            ),
         );
     }
 
     private function buildFinallyClause(Ast\Statement\FinallyClauseNode $clause): Stmt\Finally_
     {
-        return new Stmt\Finally_($this->buildStatements($clause->statements()));
+        return $this->reuseAdapterNode(
+            $clause,
+            new Stmt\Finally_($this->buildStatements($clause->statements())),
+        );
     }
 
     private function buildBlockStatement(Ast\Statement\BlockStatementNode $statement): Stmt\Block
     {
-        return new Stmt\Block($this->buildStatements($statement->statements()));
+        return $this->reuseAdapterNode(
+            $statement,
+            new Stmt\Block($this->buildStatements($statement->statements())),
+        );
     }
 
     private function buildEchoStatement(Ast\Statement\EchoStatementNode $statement): Stmt\Echo_
     {
-        return new Stmt\Echo_(
-            array_map(
-                fn (Ast\ExpressionNode $expr): Expr => $this->expressionMapper->buildExpression($expr),
-                $statement->expressions(),
+        return $this->reuseAdapterNode(
+            $statement,
+            new Stmt\Echo_(
+                array_map(
+                    fn (Ast\ExpressionNode $expr): Expr => $this->expressionMapper->buildExpression($expr),
+                    $statement->expressions(),
+                ),
             ),
         );
     }
 
     private function buildGlobalStatement(Ast\Statement\GlobalStatementNode $statement): Stmt\Global_
     {
-        return new Stmt\Global_(
-            array_map(
-                fn (Ast\ExpressionNode $expr): Expr => $this->expressionMapper->buildExpression($expr),
-                $statement->variables(),
+        return $this->reuseAdapterNode(
+            $statement,
+            new Stmt\Global_(
+                array_map(
+                    fn (Ast\ExpressionNode $expr): Expr => $this->expressionMapper->buildExpression($expr),
+                    $statement->variables(),
+                ),
             ),
         );
     }
 
     private function buildStaticStatement(Ast\Statement\StaticStatementNode $statement): Stmt\Static_
     {
-        return new Stmt\Static_(
-            array_map(
-                fn (StaticVariableNode $variable): Node\StaticVar => $this->buildStaticVariable($variable),
-                $statement->variables(),
+        return $this->reuseAdapterNode(
+            $statement,
+            new Stmt\Static_(
+                array_map(
+                    fn (StaticVariableNode $variable): Node\StaticVar => $this->buildStaticVariable($variable),
+                    $statement->variables(),
+                ),
             ),
         );
     }
 
     private function buildStaticVariable(StaticVariableNode $variable): Node\StaticVar
     {
-        return new Node\StaticVar(
-            new Expr\Variable($variable->name()->value()),
-            $variable->defaultValue() !== null ? $this->expressionMapper->buildExpression($variable->defaultValue()) : null,
+        return $this->reuseAdapterNode(
+            $variable,
+            new Node\StaticVar(
+                new Expr\Variable($variable->name()->value()),
+                $variable->defaultValue() !== null ? $this->expressionMapper->buildExpression($variable->defaultValue()) : null,
+            ),
         );
     }
 
     private function buildUnsetStatement(Ast\Statement\UnsetStatementNode $statement): Stmt\Unset_
     {
-        return new Stmt\Unset_(
-            array_map(
-                fn (Ast\ExpressionNode $expr): Expr => $this->expressionMapper->buildExpression($expr),
-                $statement->expressions(),
+        return $this->reuseAdapterNode(
+            $statement,
+            new Stmt\Unset_(
+                array_map(
+                    fn (Ast\ExpressionNode $expr): Expr => $this->expressionMapper->buildExpression($expr),
+                    $statement->expressions(),
+                ),
             ),
         );
     }
@@ -470,9 +560,12 @@ final class NikicStatementMapper implements StatementMapper
             $stmts = $this->buildStatements([$statement->singleStatement()]);
         }
 
-        return new Stmt\Declare_(
-            $this->buildDeclareDirectives($statement->directives()),
-            $stmts,
+        return $this->reuseAdapterNode(
+            $statement,
+            new Stmt\Declare_(
+                $this->buildDeclareDirectives($statement->directives()),
+                $stmts,
+            ),
         );
     }
 
@@ -490,37 +583,50 @@ final class NikicStatementMapper implements StatementMapper
 
     private function buildDeclareDirective(DeclareDirectiveNode $directive): Node\DeclareItem
     {
-        return new Node\DeclareItem(
-            $this->valueMapper->buildIdentifier($directive->name()->identifier()),
-            $this->expressionMapper->buildExpression($directive->value()),
+        return $this->reuseAdapterNode(
+            $directive,
+            new Node\DeclareItem(
+                $this->valueMapper->buildIdentifier($directive->name()->identifier()),
+                $this->expressionMapper->buildExpression($directive->value()),
+            ),
         );
     }
 
     private function buildGotoStatement(Ast\Statement\GotoStatementNode $statement): Stmt\Goto_
     {
-        return new Stmt\Goto_($this->valueMapper->buildIdentifier($statement->label()->identifier()));
+        return $this->reuseAdapterNode(
+            $statement,
+            new Stmt\Goto_($this->valueMapper->buildIdentifier($statement->label()->identifier())),
+        );
     }
 
     private function buildLabelStatement(Ast\Statement\LabelStatementNode $statement): Stmt\Label
     {
-        return new Stmt\Label($this->valueMapper->buildIdentifier($statement->label()));
+        return $this->reuseAdapterNode(
+            $statement,
+            new Stmt\Label($this->valueMapper->buildIdentifier($statement->label())),
+        );
     }
 
     private function buildInlineHtmlStatement(Ast\Statement\InlineHtmlStatementNode $statement): Stmt\InlineHTML
     {
-        return new Stmt\InlineHTML($statement->content());
+        return $this->reuseAdapterNode(
+            $statement,
+            new Stmt\InlineHTML($statement->content()),
+        );
     }
 
     private function buildHaltCompilerStatement(Ast\Statement\HaltCompilerStatementNode $statement): Stmt\HaltCompiler
     {
-        return new Stmt\HaltCompiler($statement->remainingContent());
+        return $this->reuseAdapterNode(
+            $statement,
+            new Stmt\HaltCompiler($statement->remainingContent()),
+        );
     }
 
     private function setDocComment(Node $node, ?DocBlock $docBlock): void
     {
         $doc = $this->valueMapper->buildDocBlock($docBlock);
-        if ($doc !== null) {
-            $node->setDocComment($doc);
-        }
+        $node->setAttribute('comments', $doc !== null ? [$doc] : []);
     }
 }

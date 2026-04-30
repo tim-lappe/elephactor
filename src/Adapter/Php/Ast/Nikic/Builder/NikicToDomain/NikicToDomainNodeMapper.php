@@ -15,6 +15,11 @@ final class NikicToDomainNodeMapper implements NodeMapperContext
     private readonly TypeMapper $typeMapper;
     private readonly ValueMapper $valueMapper;
 
+    /**
+     * @var list<\PhpParser\Token>
+     */
+    private array $sourceTokens = [];
+
     public function __construct(
     ) {
         $this->typeMapper = new TypeMapper();
@@ -22,6 +27,22 @@ final class NikicToDomainNodeMapper implements NodeMapperContext
         $this->memberMapper = new MemberMapper($this->valueMapper, $this);
         $this->statementMapper = new StatementMapper($this->memberMapper, $this->valueMapper, $this);
         $this->expressionMapper = new ExpressionMapper($this->valueMapper, $this);
+    }
+
+    /**
+     * @param list<\PhpParser\Token> $tokens
+     */
+    public function setSourceTokens(array $tokens): void
+    {
+        $this->sourceTokens = $tokens;
+    }
+
+    /**
+     * @return list<\PhpParser\Token>
+     */
+    public function sourceTokens(): array
+    {
+        return $this->sourceTokens;
     }
 
     /**

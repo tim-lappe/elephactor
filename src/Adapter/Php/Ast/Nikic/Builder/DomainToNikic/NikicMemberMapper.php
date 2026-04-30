@@ -9,11 +9,12 @@ use PhpParser\Node\Const_;
 use PhpParser\Node\Stmt;
 use TimLappe\Elephactor\Domain\Php\AST\Model as Ast;
 use TimLappe\Elephactor\Domain\Php\AST\Model\Value\DocBlock;
-use TimLappe\Elephactor\Domain\Php\AST\Model\Trivia\WhitespaceNode;
 use TimLappe\Elephactor\Adapter\Php\Ast\Nikic\WhitespaceAttribute;
 
 final class NikicMemberMapper implements MemberMapper
 {
+    use AdapterNodeReuserTrait;
+
     public function __construct(
         private readonly ExpressionMapper $expressionMapper,
         private readonly ValueMapper $valueMapper,
@@ -31,7 +32,16 @@ final class NikicMemberMapper implements MemberMapper
         $result = [];
 
         foreach ($members as $member) {
-            $result[] = $this->buildMember($member);
+            $stmt = $this->buildMember($member);
+            $extra = 0;
+            if ($member instanceof Ast\AbstractNode) {
+                $extra = $member->leadingExtraNewlinesBefore();
+            }
+            if ($extra > 0) {
+                WhitespaceAttribute::set($stmt, $extra);
+            }
+
+            $result[] = $stmt;
         }
 
         return $result;
@@ -69,7 +79,7 @@ final class NikicMemberMapper implements MemberMapper
 
         $this->setDocComment($node, $method->docBlock());
 
-        return $node;
+        return $this->reuseAdapterNode($method, $node);
     }
 
     private function buildProperty(Ast\Declaration\PropertyDeclarationNode $property): Stmt\Property
@@ -94,7 +104,7 @@ final class NikicMemberMapper implements MemberMapper
 
         $this->setDocComment($node, $property->docBlock());
 
-        return $node;
+        return $this->reuseAdapterNode($property, $node);
     }
 
     private function buildClassConstant(Ast\Declaration\ClassConstantDeclarationNode $const): Stmt\ClassConst
@@ -122,7 +132,7 @@ final class NikicMemberMapper implements MemberMapper
 
         $this->setDocComment($node, $const->docBlock());
 
-        return $node;
+        return $this->reuseAdapterNode($const, $node);
     }
 
     private function buildTraitUse(Ast\Declaration\TraitUseNode $traitUse): Stmt\TraitUse
@@ -132,9 +142,12 @@ final class NikicMemberMapper implements MemberMapper
             $traitUse->traits(),
         );
 
-        return new Stmt\TraitUse(
+        return $this->reuseAdapterNode(
+            $traitUse,
+            new Stmt\TraitUse(
             $traits,
             $this->buildTraitAdaptations($traitUse->adaptations()),
+            ),
         );
     }
 
@@ -166,22 +179,28 @@ final class NikicMemberMapper implements MemberMapper
             ? $this->valueMapper->buildVisibilityFlag($alias->visibility())
             : null;
 
-        return new Stmt\TraitUseAdaptation\Alias(
+        return $this->reuseAdapterNode(
+            $alias,
+            new Stmt\TraitUseAdaptation\Alias(
             $alias->traitName() !== null ? $this->valueMapper->buildQualifiedName($alias->traitName()->qualifiedName()) : null,
             $this->valueMapper->buildIdentifier($alias->method()->identifier()),
             $modifier,
             $alias->alias() !== null ? $this->valueMapper->buildIdentifier($alias->alias()->identifier()) : null,
+            ),
         );
     }
 
     private function buildTraitPrecedenceAdaptation(Ast\UseTrait\TraitPrecedenceAdaptationNode $precedence): Stmt\TraitUseAdaptation\Precedence
     {
-        return new Stmt\TraitUseAdaptation\Precedence(
-            $this->valueMapper->buildQualifiedName($precedence->originatingTrait()->qualifiedName()),
-            $this->valueMapper->buildIdentifier($precedence->method()->identifier()),
-            array_map(
-                fn (Ast\Name\QualifiedNameNode $name): Node\Name => $this->valueMapper->buildQualifiedName($name->qualifiedName()),
-                $precedence->insteadOf(),
+        return $this->reuseAdapterNode(
+            $precedence,
+            new Stmt\TraitUseAdaptation\Precedence(
+                $this->valueMapper->buildQualifiedName($precedence->originatingTrait()->qualifiedName()),
+                $this->valueMapper->buildIdentifier($precedence->method()->identifier()),
+                array_map(
+                    fn (Ast\Name\QualifiedNameNode $name): Node\Name => $this->valueMapper->buildQualifiedName($name->qualifiedName()),
+                    $precedence->insteadOf(),
+                ),
             ),
         );
     }
@@ -196,14 +215,12 @@ final class NikicMemberMapper implements MemberMapper
 
         $this->setDocComment($node, $case->docBlock());
 
-        return $node;
+        return $this->reuseAdapterNode($case, $node);
     }
 
     private function setDocComment(Node $node, ?DocBlock $docBlock): void
     {
         $doc = $this->valueMapper->buildDocBlock($docBlock);
-        if ($doc !== null) {
-            $node->setDocComment($doc);
-        }
+        $node->setAttribute('comments', $doc !== null ? [$doc] : []);
     }
 }

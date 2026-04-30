@@ -11,6 +11,8 @@ use TimLappe\Elephactor\Domain\Php\AST\Model as Ast;
 
 final class ValueMapper
 {
+    use NodeAttributeMapperTrait;
+
     public function __construct(
         private readonly TypeMapper $typeMapper,
         private readonly NodeMapperContext $context,
@@ -91,30 +93,39 @@ final class ValueMapper
 
     private function mapAttributeGroup(Node\AttributeGroup $group): Ast\Attribute\AttributeGroupNode
     {
-        return new Ast\Attribute\AttributeGroupNode(
-            array_values(array_map(
-                fn (Node\Attribute $attribute): Ast\Attribute\AttributeNode => $this->mapAttribute($attribute),
-                $group->attrs,
-            )),
+        return $this->applyAttributes(
+            $group,
+            new Ast\Attribute\AttributeGroupNode(
+                array_values(array_map(
+                    fn (Node\Attribute $attribute): Ast\Attribute\AttributeNode => $this->mapAttribute($attribute),
+                    $group->attrs,
+                )),
+            ),
         );
     }
 
     private function mapAttribute(Node\Attribute $attribute): Ast\Attribute\AttributeNode
     {
-        return new Ast\Attribute\AttributeNode(
-            $this->typeMapper->mapQualifiedName($attribute->name),
-            array_map(
-                fn (Node\Arg $arg): Ast\Attribute\AttributeArgumentNode => $this->mapAttributeArgument($arg),
-                $attribute->args,
+        return $this->applyAttributes(
+            $attribute,
+            new Ast\Attribute\AttributeNode(
+                $this->typeMapper->mapQualifiedName($attribute->name),
+                array_map(
+                    fn (Node\Arg $arg): Ast\Attribute\AttributeArgumentNode => $this->mapAttributeArgument($arg),
+                    $attribute->args,
+                ),
             ),
         );
     }
 
     private function mapAttributeArgument(Node\Arg $argument): Ast\Attribute\AttributeArgumentNode
     {
-        return new Ast\Attribute\AttributeArgumentNode(
-            $this->context->expressionMapper()->mapExpression($argument->value),
-            $argument->name !== null ? $this->typeMapper->mapIdentifier($argument->name) : null,
+        return $this->applyAttributes(
+            $argument,
+            new Ast\Attribute\AttributeArgumentNode(
+                $this->context->expressionMapper()->mapExpression($argument->value),
+                $argument->name !== null ? $this->typeMapper->mapIdentifier($argument->name) : null,
+            ),
         );
     }
 

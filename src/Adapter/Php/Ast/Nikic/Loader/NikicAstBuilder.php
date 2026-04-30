@@ -37,7 +37,11 @@ final class NikicAstBuilder implements AstBuilder
             throw new \RuntimeException('Failed to parse file');
         }
 
+        $tokens = $this->parser->getTokens();
+        $this->mapper->setSourceTokens(array_values($tokens));
+
         $astStatements = $this->mapper->mapStatements($statements);
-        return new FileNode($astStatements);
+
+        return new FileNode($astStatements, array_values($tokens));
     }
 }

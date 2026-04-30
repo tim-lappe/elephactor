@@ -35,6 +35,14 @@ final class NodeCollection
     }
 
     /**
+     * @return list<Node>
+     */
+    public function all(): array
+    {
+        return array_map(fn (NodeCollectionItem $item) => $item->node(), $this->nodes);
+    }
+
+    /**
      * @template T of Node
      * @param  string          $key
      * @param  class-string<T> $type

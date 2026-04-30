@@ -10,6 +10,8 @@ use TimLappe\Elephactor\Domain\Php\AST\Model as Ast;
 
 final class TypeMapper
 {
+    use NodeAttributeMapperTrait;
+
     public function mapQualifiedName(Name $name): Ast\Value\QualifiedName
     {
         $parts = $name->getParts();
@@ -45,6 +47,8 @@ final class TypeMapper
 
     public function mapType(null|Name|Node\Identifier|Node $type): ?Ast\TypeNode
     {
+        $mapped = null;
+
         if ($type === null) {
             return null;
         }
@@ -54,13 +58,13 @@ final class TypeMapper
             if ($innerType === null) {
                 throw new \RuntimeException('Nullable type must have an inner type');
             }
-            return new Ast\Type\NullableTypeNode(
+            $mapped = new Ast\Type\NullableTypeNode(
                 $innerType,
             );
         }
 
-        if ($type instanceof Node\UnionType) {
-            return new Ast\Type\UnionTypeNode(
+        if ($mapped === null && $type instanceof Node\UnionType) {
+            $mapped = new Ast\Type\UnionTypeNode(
                 array_values(array_filter(array_map(
                     fn (Node $inner): ?Ast\TypeNode => $this->mapType($inner),
                     $type->types,
@@ -68,8 +72,8 @@ final class TypeMapper
             );
         }
 
-        if ($type instanceof Node\IntersectionType) {
-            return new Ast\Type\IntersectionTypeNode(
+        if ($mapped === null && $type instanceof Node\IntersectionType) {
+            $mapped = new Ast\Type\IntersectionTypeNode(
                 array_values(array_filter(array_map(
                     fn (Node $inner): ?Ast\TypeNode => $this->mapType($inner),
                     $type->types,
@@ -77,13 +81,13 @@ final class TypeMapper
             );
         }
 
-        if ($type instanceof Name) {
-            return new Ast\Type\NamedTypeNode(
+        if ($mapped === null && $type instanceof Name) {
+            $mapped = new Ast\Type\NamedTypeNode(
                 $this->mapQualifiedName($type),
             );
         }
 
-        if ($type instanceof Node\Identifier) {
+        if ($mapped === null && $type instanceof Node\Identifier) {
             $value = strtolower($type->toString());
 
             $special = match ($value) {
@@ -104,14 +108,18 @@ final class TypeMapper
             };
 
             if ($special !== null) {
-                return new Ast\Type\SpecialTypeNode($special);
+                $mapped = new Ast\Type\SpecialTypeNode($special);
+            } else {
+                $mapped = new Ast\Type\NamedTypeNode(
+                    new Ast\Value\QualifiedName([new Ast\Value\Identifier($type->toString())]),
+                );
             }
-
-            return new Ast\Type\NamedTypeNode(
-                new Ast\Value\QualifiedName([new Ast\Value\Identifier($type->toString())]),
-            );
         }
 
-        throw new \RuntimeException('Unsupported type: ' . $type::class);
+        if ($mapped === null) {
+            throw new \RuntimeException('Unsupported type: ' . $type::class);
+        }
+
+        return $this->applyAttributes($type, $mapped);
     }
 }

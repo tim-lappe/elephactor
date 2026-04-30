@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace TimLappe\Elephactor\Adapter\Php\Ast\Nikic\Builder\NikicToDomain;
 
+use TimLappe\Elephactor\Adapter\Php\Ast\Nikic\TokenSpanExtraBlankLines;
 use PhpParser\Node;
 use PhpParser\Node\Expr;
 use PhpParser\Node\Name;
@@ -12,6 +13,8 @@ use TimLappe\Elephactor\Domain\Php\AST\Model as Ast;
 
 final class StatementMapper
 {
+    use NodeAttributeMapperTrait;
+
     public function __construct(
         private readonly MemberMapper $memberMapper,
         private readonly ValueMapper $valueMapper,
@@ -32,14 +35,25 @@ final class StatementMapper
     {
         $result = [];
 
+        $tokens = $this->context->sourceTokens();
+        $prevStmt = null;
+
         foreach ($statements as $statement) {
             if ($statement instanceof Stmt\Nop) {
                 continue;
             }
 
-            foreach ($this->mapStatement($statement) as $mapped) {
+            foreach ($this->mapStatement($statement) as $segmentIndex => $mapped) {
+                if ($prevStmt !== null && $segmentIndex === 0 && $mapped instanceof Ast\AbstractNode) {
+                    $extra = TokenSpanExtraBlankLines::betweenNodes($prevStmt, $statement, $tokens);
+                    if ($extra > 0) {
+                        $mapped->setLeadingExtraNewlinesBefore($extra);
+                    }
+                }
                 $result[] = $mapped;
             }
+
+            $prevStmt = $statement;
         }
 
         return $result;
@@ -186,22 +200,28 @@ final class StatementMapper
             throw new \RuntimeException('Namespace name is required');
         }
 
-        return new Ast\Statement\NamespaceDefinitionNode(
-            $name,
-            $statements,
-            $kind === Stmt\Namespace_::KIND_BRACED,
+        return $this->applyAttributes(
+            $namespace,
+            new Ast\Statement\NamespaceDefinitionNode(
+                $name,
+                $statements,
+                $kind === Stmt\Namespace_::KIND_BRACED,
+            ),
         );
     }
 
     private function mapUseStatement(Stmt\Use_ $use): Ast\Statement\UseStatementNode
     {
-        return new Ast\Statement\UseStatementNode(
-            array_values(array_map(
-                fn (Node\UseItem $item): Ast\Statement\UseClauseNode => $this->mapUseClause($item),
-                $use->uses,
-            )),
-            $this->valueMapper->resolveUseKind($use->type),
-            null,
+        return $this->applyAttributes(
+            $use,
+            new Ast\Statement\UseStatementNode(
+                array_values(array_map(
+                    fn (Node\UseItem $item): Ast\Statement\UseClauseNode => $this->mapUseClause($item),
+                    $use->uses,
+                )),
+                $this->valueMapper->resolveUseKind($use->type),
+                null,
+            ),
         );
     }
 
@@ -222,10 +242,13 @@ final class StatementMapper
         $result = [];
 
         foreach ($groupedClauses as $kindValue => $clauses) {
-            $result[] = new Ast\Statement\UseStatementNode(
-                $clauses,
-                Ast\Statement\UseKind::from($kindValue),
-                $prefix,
+            $result[] = $this->applyAttributes(
+                $groupUse,
+                new Ast\Statement\UseStatementNode(
+                    $clauses,
+                    Ast\Statement\UseKind::from($kindValue),
+                    $prefix,
+                ),
             );
         }
 
@@ -234,35 +257,44 @@ final class StatementMapper
 
     private function mapUseClause(Node\UseItem $item): Ast\Statement\UseClauseNode
     {
-        return new Ast\Statement\UseClauseNode(
-            $this->valueMapper->getTypeMapper()->mapQualifiedName($item->name),
-            $item->alias !== null ? $this->valueMapper->getTypeMapper()->mapIdentifier($item->alias) : null,
+        return $this->applyAttributes(
+            $item,
+            new Ast\Statement\UseClauseNode(
+                $this->valueMapper->getTypeMapper()->mapQualifiedName($item->name),
+                $item->alias !== null ? $this->valueMapper->getTypeMapper()->mapIdentifier($item->alias) : null,
+            ),
         );
     }
 
     private function mapConstDeclaration(Stmt\Const_ $const): Ast\Declaration\ConstDeclarationNode
     {
-        return new Ast\Declaration\ConstDeclarationNode(
-            array_values(array_map(
-                fn (Node\Const_ $element): Ast\Declaration\ConstElementNode => new Ast\Declaration\ConstElementNode(
-                    $this->valueMapper->getTypeMapper()->mapIdentifier($element->name),
-                    $this->expressionMapper()->mapExpression($element->value),
-                ),
-                $const->consts,
-            )),
+        return $this->applyAttributes(
+            $const,
+            new Ast\Declaration\ConstDeclarationNode(
+                array_values(array_map(
+                    fn (Node\Const_ $element): Ast\Declaration\ConstElementNode => new Ast\Declaration\ConstElementNode(
+                        $this->valueMapper->getTypeMapper()->mapIdentifier($element->name),
+                        $this->expressionMapper()->mapExpression($element->value),
+                    ),
+                    $const->consts,
+                )),
+            ),
         );
     }
 
     private function mapFunctionDeclaration(Stmt\Function_ $function): Ast\Declaration\FunctionDeclarationNode
     {
-        return new Ast\Declaration\FunctionDeclarationNode(
-            $this->valueMapper->getTypeMapper()->mapIdentifier($function->name),
-            $this->valueMapper->mapAttributeGroups($function->attrGroups),
-            $this->expressionMapper()->mapParameters($function->params),
-            $this->mapStatements($function->stmts ?? []),
-            $this->valueMapper->getTypeMapper()->mapType($function->returnType),
-            $function->byRef,
-            $this->valueMapper->mapDocBlock($function->getDocComment()),
+        return $this->applyAttributes(
+            $function,
+            new Ast\Declaration\FunctionDeclarationNode(
+                $this->valueMapper->getTypeMapper()->mapIdentifier($function->name),
+                $this->valueMapper->mapAttributeGroups($function->attrGroups),
+                $this->expressionMapper()->mapParameters($function->params),
+                $this->mapStatements($function->stmts ?? []),
+                $this->valueMapper->getTypeMapper()->mapType($function->returnType),
+                $function->byRef,
+                $this->valueMapper->mapDocBlock($function->getDocComment()),
+            ),
         );
     }
 
@@ -278,14 +310,17 @@ final class StatementMapper
             $class->implements,
         ));
 
-        return new Ast\Declaration\ClassDeclarationNode(
-            $this->valueMapper->getTypeMapper()->mapIdentifier($class->name),
-            $this->valueMapper->mapClassModifiers($class->flags),
-            $this->valueMapper->mapAttributeGroups($class->attrGroups),
-            $interfaces,
-            $this->memberMapper->mapClassMembers($class->stmts),
-            $extends,
-            $this->valueMapper->mapDocBlock($class->getDocComment()),
+        return $this->applyAttributes(
+            $class,
+            new Ast\Declaration\ClassDeclarationNode(
+                $this->valueMapper->getTypeMapper()->mapIdentifier($class->name),
+                $this->valueMapper->mapClassModifiers($class->flags),
+                $this->valueMapper->mapAttributeGroups($class->attrGroups),
+                $interfaces,
+                $this->memberMapper->mapClassMembers($class->stmts),
+                $extends,
+                $this->valueMapper->mapDocBlock($class->getDocComment()),
+            ),
         );
     }
 
@@ -295,15 +330,18 @@ final class StatementMapper
             throw new \RuntimeException('Interface name is required');
         }
 
-        return new Ast\Declaration\InterfaceDeclarationNode(
-            $this->valueMapper->getTypeMapper()->mapIdentifier($interface->name),
-            $this->valueMapper->mapAttributeGroups($interface->attrGroups),
-            array_values(array_map(
-                fn (Name $parent): Ast\Value\QualifiedName => $this->valueMapper->getTypeMapper()->mapQualifiedName($parent),
-                $interface->extends,
-            )),
-            $this->memberMapper->mapClassMembers($interface->stmts),
-            $this->valueMapper->mapDocBlock($interface->getDocComment()),
+        return $this->applyAttributes(
+            $interface,
+            new Ast\Declaration\InterfaceDeclarationNode(
+                $this->valueMapper->getTypeMapper()->mapIdentifier($interface->name),
+                $this->valueMapper->mapAttributeGroups($interface->attrGroups),
+                array_values(array_map(
+                    fn (Name $parent): Ast\Value\QualifiedName => $this->valueMapper->getTypeMapper()->mapQualifiedName($parent),
+                    $interface->extends,
+                )),
+                $this->memberMapper->mapClassMembers($interface->stmts),
+                $this->valueMapper->mapDocBlock($interface->getDocComment()),
+            ),
         );
     }
 
@@ -313,11 +351,14 @@ final class StatementMapper
             throw new \RuntimeException('Trait name is required');
         }
 
-        return new Ast\Declaration\TraitDeclarationNode(
-            $this->valueMapper->getTypeMapper()->mapIdentifier($trait->name),
-            $this->valueMapper->mapAttributeGroups($trait->attrGroups),
-            $this->memberMapper->mapClassMembers($trait->stmts),
-            $this->valueMapper->mapDocBlock($trait->getDocComment()),
+        return $this->applyAttributes(
+            $trait,
+            new Ast\Declaration\TraitDeclarationNode(
+                $this->valueMapper->getTypeMapper()->mapIdentifier($trait->name),
+                $this->valueMapper->mapAttributeGroups($trait->attrGroups),
+                $this->memberMapper->mapClassMembers($trait->stmts),
+                $this->valueMapper->mapDocBlock($trait->getDocComment()),
+            ),
         );
     }
 
@@ -327,37 +368,49 @@ final class StatementMapper
             throw new \RuntimeException('Enum name is required');
         }
 
-        return new Ast\Declaration\EnumDeclarationNode(
-            $this->valueMapper->getTypeMapper()->mapIdentifier($enum->name),
-            $this->valueMapper->mapAttributeGroups($enum->attrGroups),
-            array_values(array_map(
-                fn (Name $interface): Ast\Value\QualifiedName => $this->valueMapper->getTypeMapper()->mapQualifiedName($interface),
-                $enum->implements,
-            )),
-            $this->memberMapper->mapClassMembers($enum->stmts),
-            $this->valueMapper->getTypeMapper()->mapType($enum->scalarType),
-            $this->valueMapper->mapDocBlock($enum->getDocComment()),
+        return $this->applyAttributes(
+            $enum,
+            new Ast\Declaration\EnumDeclarationNode(
+                $this->valueMapper->getTypeMapper()->mapIdentifier($enum->name),
+                $this->valueMapper->mapAttributeGroups($enum->attrGroups),
+                array_values(array_map(
+                    fn (Name $interface): Ast\Value\QualifiedName => $this->valueMapper->getTypeMapper()->mapQualifiedName($interface),
+                    $enum->implements,
+                )),
+                $this->memberMapper->mapClassMembers($enum->stmts),
+                $this->valueMapper->getTypeMapper()->mapType($enum->scalarType),
+                $this->valueMapper->mapDocBlock($enum->getDocComment()),
+            ),
         );
     }
 
     private function mapReturnStatement(Stmt\Return_ $return): Ast\Statement\ReturnStatementNode
     {
-        return new Ast\Statement\ReturnStatementNode(
-            $return->expr !== null ? $this->expressionMapper()->mapExpression($return->expr) : null,
+        return $this->applyAttributes(
+            $return,
+            new Ast\Statement\ReturnStatementNode(
+                $return->expr !== null ? $this->expressionMapper()->mapExpression($return->expr) : null,
+            ),
         );
     }
 
     private function mapBreakStatement(Stmt\Break_ $break): Ast\Statement\BreakStatementNode
     {
-        return new Ast\Statement\BreakStatementNode(
-            $break->num !== null ? $this->expressionMapper()->mapExpression($break->num) : null,
+        return $this->applyAttributes(
+            $break,
+            new Ast\Statement\BreakStatementNode(
+                $break->num !== null ? $this->expressionMapper()->mapExpression($break->num) : null,
+            ),
         );
     }
 
     private function mapContinueStatement(Stmt\Continue_ $continue): Ast\Statement\ContinueStatementNode
     {
-        return new Ast\Statement\ContinueStatementNode(
-            $continue->num !== null ? $this->expressionMapper()->mapExpression($continue->num) : null,
+        return $this->applyAttributes(
+            $continue,
+            new Ast\Statement\ContinueStatementNode(
+                $continue->num !== null ? $this->expressionMapper()->mapExpression($continue->num) : null,
+            ),
         );
     }
 
@@ -365,109 +418,145 @@ final class StatementMapper
     private function mapExpressionStatement(Stmt\Expression $expression): Ast\StatementNode
     {
         if ($expression->expr instanceof Expr\Throw_) {
-            return new Ast\Statement\ThrowStatementNode(
-                $this->expressionMapper()->mapExpression($expression->expr->expr),
+            return $this->applyAttributes(
+                $expression,
+                new Ast\Statement\ThrowStatementNode(
+                    $this->expressionMapper()->mapExpression($expression->expr->expr),
+                ),
             );
         }
 
-        return new Ast\Statement\ExpressionStatementNode(
-            $this->expressionMapper()->mapExpression($expression->expr),
+        return $this->applyAttributes(
+            $expression,
+            new Ast\Statement\ExpressionStatementNode(
+                $this->expressionMapper()->mapExpression($expression->expr),
+            ),
         );
     }
 
     private function mapIfStatement(Stmt\If_ $if): Ast\Statement\IfStatementNode
     {
-        return new Ast\Statement\IfStatementNode(
-            $this->expressionMapper()->mapExpression($if->cond),
-            $this->mapStatements($if->stmts),
-            array_values(array_map(
-                fn (Stmt\ElseIf_ $elseIf): Ast\Statement\ElseIfClauseNode => $this->mapElseIfClause($elseIf),
-                $if->elseifs,
-            )),
-            $if->else !== null ? $this->mapElseClause($if->else) : null,
+        return $this->applyAttributes(
+            $if,
+            new Ast\Statement\IfStatementNode(
+                $this->expressionMapper()->mapExpression($if->cond),
+                $this->mapStatements($if->stmts),
+                array_values(array_map(
+                    fn (Stmt\ElseIf_ $elseIf): Ast\Statement\ElseIfClauseNode => $this->mapElseIfClause($elseIf),
+                    $if->elseifs,
+                )),
+                $if->else !== null ? $this->mapElseClause($if->else) : null,
+            ),
         );
     }
 
     private function mapElseIfClause(Stmt\ElseIf_ $elseIf): Ast\Statement\ElseIfClauseNode
     {
-        return new Ast\Statement\ElseIfClauseNode(
-            $this->expressionMapper()->mapExpression($elseIf->cond),
-            $this->mapStatements($elseIf->stmts),
+        return $this->applyAttributes(
+            $elseIf,
+            new Ast\Statement\ElseIfClauseNode(
+                $this->expressionMapper()->mapExpression($elseIf->cond),
+                $this->mapStatements($elseIf->stmts),
+            ),
         );
     }
 
     private function mapElseClause(Stmt\Else_ $else): Ast\Statement\ElseClauseNode
     {
-        return new Ast\Statement\ElseClauseNode(
-            $this->mapStatements($else->stmts),
+        return $this->applyAttributes(
+            $else,
+            new Ast\Statement\ElseClauseNode(
+                $this->mapStatements($else->stmts),
+            ),
         );
     }
 
     private function mapWhileStatement(Stmt\While_ $while): Ast\Statement\WhileStatementNode
     {
-        return new Ast\Statement\WhileStatementNode(
-            $this->expressionMapper()->mapExpression($while->cond),
-            $this->mapStatements($while->stmts),
+        return $this->applyAttributes(
+            $while,
+            new Ast\Statement\WhileStatementNode(
+                $this->expressionMapper()->mapExpression($while->cond),
+                $this->mapStatements($while->stmts),
+            ),
         );
     }
 
     private function mapDoWhileStatement(Stmt\Do_ $do): Ast\Statement\DoWhileStatementNode
     {
-        return new Ast\Statement\DoWhileStatementNode(
-            $this->expressionMapper()->mapExpression($do->cond),
-            $this->mapStatements($do->stmts),
+        return $this->applyAttributes(
+            $do,
+            new Ast\Statement\DoWhileStatementNode(
+                $this->expressionMapper()->mapExpression($do->cond),
+                $this->mapStatements($do->stmts),
+            ),
         );
     }
 
     private function mapForStatement(Stmt\For_ $for): Ast\Statement\ForStatementNode
     {
-        return new Ast\Statement\ForStatementNode(
-            array_values(array_map(fn (Expr $expr): Ast\ExpressionNode => $this->expressionMapper()->mapExpression($expr), $for->init)),
-            array_values(array_map(fn (Expr $expr): Ast\ExpressionNode => $this->expressionMapper()->mapExpression($expr), $for->cond)),
-            array_values(array_map(fn (Expr $expr): Ast\ExpressionNode => $this->expressionMapper()->mapExpression($expr), $for->loop)),
-            $this->mapStatements($for->stmts),
+        return $this->applyAttributes(
+            $for,
+            new Ast\Statement\ForStatementNode(
+                array_values(array_map(fn (Expr $expr): Ast\ExpressionNode => $this->expressionMapper()->mapExpression($expr), $for->init)),
+                array_values(array_map(fn (Expr $expr): Ast\ExpressionNode => $this->expressionMapper()->mapExpression($expr), $for->cond)),
+                array_values(array_map(fn (Expr $expr): Ast\ExpressionNode => $this->expressionMapper()->mapExpression($expr), $for->loop)),
+                $this->mapStatements($for->stmts),
+            ),
         );
     }
 
     private function mapForeachStatement(Stmt\Foreach_ $foreach): Ast\Statement\ForeachStatementNode
     {
-        return new Ast\Statement\ForeachStatementNode(
-            $this->expressionMapper()->mapExpression($foreach->expr),
-            $this->expressionMapper()->mapExpression($foreach->valueVar),
-            $foreach->keyVar !== null ? $this->expressionMapper()->mapExpression($foreach->keyVar) : null,
-            $foreach->byRef,
-            $this->mapStatements($foreach->stmts),
+        return $this->applyAttributes(
+            $foreach,
+            new Ast\Statement\ForeachStatementNode(
+                $this->expressionMapper()->mapExpression($foreach->expr),
+                $this->expressionMapper()->mapExpression($foreach->valueVar),
+                $foreach->keyVar !== null ? $this->expressionMapper()->mapExpression($foreach->keyVar) : null,
+                $foreach->byRef,
+                $this->mapStatements($foreach->stmts),
+            ),
         );
     }
 
     private function mapSwitchStatement(Stmt\Switch_ $switch): Ast\Statement\SwitchStatementNode
     {
-        return new Ast\Statement\SwitchStatementNode(
-            $this->expressionMapper()->mapExpression($switch->cond),
-            array_values(array_map(
-                fn (Stmt\Case_ $case): Ast\Statement\SwitchCaseNode => $this->mapSwitchCase($case),
-                $switch->cases,
-            )),
+        return $this->applyAttributes(
+            $switch,
+            new Ast\Statement\SwitchStatementNode(
+                $this->expressionMapper()->mapExpression($switch->cond),
+                array_values(array_map(
+                    fn (Stmt\Case_ $case): Ast\Statement\SwitchCaseNode => $this->mapSwitchCase($case),
+                    $switch->cases,
+                )),
+            ),
         );
     }
 
     private function mapSwitchCase(Stmt\Case_ $case): Ast\Statement\SwitchCaseNode
     {
-        return new Ast\Statement\SwitchCaseNode(
-            $case->cond !== null ? $this->expressionMapper()->mapExpression($case->cond) : null,
-            $this->mapStatements($case->stmts),
+        return $this->applyAttributes(
+            $case,
+            new Ast\Statement\SwitchCaseNode(
+                $case->cond !== null ? $this->expressionMapper()->mapExpression($case->cond) : null,
+                $this->mapStatements($case->stmts),
+            ),
         );
     }
 
     private function mapTryStatement(Stmt\TryCatch $try): Ast\Statement\TryStatementNode
     {
-        return new Ast\Statement\TryStatementNode(
-            $this->mapStatements($try->stmts),
-            array_values(array_map(
-                fn (Stmt\Catch_ $catch): Ast\Statement\CatchClauseNode => $this->mapCatchClause($catch),
-                $try->catches,
-            )),
-            $try->finally !== null ? $this->mapFinallyClause($try->finally) : null,
+        return $this->applyAttributes(
+            $try,
+            new Ast\Statement\TryStatementNode(
+                $this->mapStatements($try->stmts),
+                array_values(array_map(
+                    fn (Stmt\Catch_ $catch): Ast\Statement\CatchClauseNode => $this->mapCatchClause($catch),
+                    $try->catches,
+                )),
+                $try->finally !== null ? $this->mapFinallyClause($try->finally) : null,
+            ),
         );
     }
 
@@ -482,56 +571,77 @@ final class StatementMapper
             throw new \RuntimeException('Catch variable is required');
         }
 
-        return new Ast\Statement\CatchClauseNode(
-            $types,
-            $this->expressionMapper()->expectSimpleVariable($catch->var),
-            $this->mapStatements($catch->stmts),
+        return $this->applyAttributes(
+            $catch,
+            new Ast\Statement\CatchClauseNode(
+                $types,
+                $this->expressionMapper()->expectSimpleVariable($catch->var),
+                $this->mapStatements($catch->stmts),
+            ),
         );
     }
 
     private function mapFinallyClause(Stmt\Finally_ $finally): Ast\Statement\FinallyClauseNode
     {
-        return new Ast\Statement\FinallyClauseNode(
-            $this->mapStatements($finally->stmts),
+        return $this->applyAttributes(
+            $finally,
+            new Ast\Statement\FinallyClauseNode(
+                $this->mapStatements($finally->stmts),
+            ),
         );
     }
 
     private function mapEchoStatement(Stmt\Echo_ $echo): Ast\Statement\EchoStatementNode
     {
-        return new Ast\Statement\EchoStatementNode(
-            array_values(array_map(fn (Expr $expr): Ast\ExpressionNode => $this->expressionMapper()->mapExpression($expr), $echo->exprs)),
+        return $this->applyAttributes(
+            $echo,
+            new Ast\Statement\EchoStatementNode(
+                array_values(array_map(fn (Expr $expr): Ast\ExpressionNode => $this->expressionMapper()->mapExpression($expr), $echo->exprs)),
+            ),
         );
     }
 
     private function mapGlobalStatement(Stmt\Global_ $global): Ast\Statement\GlobalStatementNode
     {
-        return new Ast\Statement\GlobalStatementNode(
-            array_values(array_map(fn (Expr $expr): Ast\ExpressionNode => $this->expressionMapper()->mapExpression($expr), $global->vars)),
+        return $this->applyAttributes(
+            $global,
+            new Ast\Statement\GlobalStatementNode(
+                array_values(array_map(fn (Expr $expr): Ast\ExpressionNode => $this->expressionMapper()->mapExpression($expr), $global->vars)),
+            ),
         );
     }
 
     private function mapStaticStatement(Stmt\Static_ $static): Ast\Statement\StaticStatementNode
     {
-        return new Ast\Statement\StaticStatementNode(
-            array_values(array_map(
-                fn (Node\StaticVar $var): Ast\Statement\StaticVariableNode => $this->mapStaticVariable($var),
-                $static->vars,
-            )),
+        return $this->applyAttributes(
+            $static,
+            new Ast\Statement\StaticStatementNode(
+                array_values(array_map(
+                    fn (Node\StaticVar $var): Ast\Statement\StaticVariableNode => $this->mapStaticVariable($var),
+                    $static->vars,
+                )),
+            ),
         );
     }
 
     private function mapStaticVariable(Node\StaticVar $var): Ast\Statement\StaticVariableNode
     {
-        return new Ast\Statement\StaticVariableNode(
-            $this->expressionMapper()->expectSimpleVariable($var->var),
-            $var->default !== null ? $this->expressionMapper()->mapExpression($var->default) : null,
+        return $this->applyAttributes(
+            $var,
+            new Ast\Statement\StaticVariableNode(
+                $this->expressionMapper()->expectSimpleVariable($var->var),
+                $var->default !== null ? $this->expressionMapper()->mapExpression($var->default) : null,
+            ),
         );
     }
 
     private function mapUnsetStatement(Stmt\Unset_ $unset): Ast\Statement\UnsetStatementNode
     {
-        return new Ast\Statement\UnsetStatementNode(
-            array_values(array_map(fn (Expr $expr): Ast\ExpressionNode => $this->expressionMapper()->mapExpression($expr), $unset->vars)),
+        return $this->applyAttributes(
+            $unset,
+            new Ast\Statement\UnsetStatementNode(
+                array_values(array_map(fn (Expr $expr): Ast\ExpressionNode => $this->expressionMapper()->mapExpression($expr), $unset->vars)),
+            ),
         );
     }
 
@@ -544,46 +654,64 @@ final class StatementMapper
 
         $blockStatements = $declare->stmts !== null ? $this->mapStatements($declare->stmts) : [];
 
-        return new Ast\Statement\DeclareStatementNode(
-            $directives,
-            $blockStatements,
-            null,
+        return $this->applyAttributes(
+            $declare,
+            new Ast\Statement\DeclareStatementNode(
+                $directives,
+                $blockStatements,
+                null,
+            ),
         );
     }
 
     private function mapDeclareDirective(Stmt\DeclareDeclare $directive): Ast\Statement\DeclareDirectiveNode
     {
-        return new Ast\Statement\DeclareDirectiveNode(
-            $this->valueMapper->getTypeMapper()->mapIdentifier($directive->key),
-            $this->expressionMapper()->mapExpression($directive->value),
+        return $this->applyAttributes(
+            $directive,
+            new Ast\Statement\DeclareDirectiveNode(
+                $this->valueMapper->getTypeMapper()->mapIdentifier($directive->key),
+                $this->expressionMapper()->mapExpression($directive->value),
+            ),
         );
     }
 
     private function mapGotoStatement(Stmt\Goto_ $goto): Ast\Statement\GotoStatementNode
     {
-        return new Ast\Statement\GotoStatementNode(
-            $this->valueMapper->getTypeMapper()->mapIdentifier($goto->name),
+        return $this->applyAttributes(
+            $goto,
+            new Ast\Statement\GotoStatementNode(
+                $this->valueMapper->getTypeMapper()->mapIdentifier($goto->name),
+            ),
         );
     }
 
     private function mapLabelStatement(Stmt\Label $label): Ast\Statement\LabelStatementNode
     {
-        return new Ast\Statement\LabelStatementNode(
-            $this->valueMapper->getTypeMapper()->mapIdentifier($label->name),
+        return $this->applyAttributes(
+            $label,
+            new Ast\Statement\LabelStatementNode(
+                $this->valueMapper->getTypeMapper()->mapIdentifier($label->name),
+            ),
         );
     }
 
     private function mapInlineHtmlStatement(Stmt\InlineHTML $inlineHtml): Ast\Statement\InlineHtmlStatementNode
     {
-        return new Ast\Statement\InlineHtmlStatementNode(
-            $inlineHtml->value,
+        return $this->applyAttributes(
+            $inlineHtml,
+            new Ast\Statement\InlineHtmlStatementNode(
+                $inlineHtml->value,
+            ),
         );
     }
 
     private function mapHaltCompilerStatement(Stmt\HaltCompiler $haltCompiler): Ast\Statement\HaltCompilerStatementNode
     {
-        return new Ast\Statement\HaltCompilerStatementNode(
-            $haltCompiler->remaining,
+        return $this->applyAttributes(
+            $haltCompiler,
+            new Ast\Statement\HaltCompilerStatementNode(
+                $haltCompiler->remaining,
+            ),
         );
     }
 
@@ -592,8 +720,11 @@ final class StatementMapper
      */
     private function mapBlockStatement(array $statements, Node $original): Ast\Statement\BlockStatementNode
     {
-        return new Ast\Statement\BlockStatementNode(
-            $this->mapStatements($statements),
+        return $this->applyAttributes(
+            $original,
+            new Ast\Statement\BlockStatementNode(
+                $this->mapStatements($statements),
+            ),
         );
     }
 }

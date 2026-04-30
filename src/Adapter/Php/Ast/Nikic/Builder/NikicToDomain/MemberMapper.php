@@ -7,10 +7,13 @@ namespace TimLappe\Elephactor\Adapter\Php\Ast\Nikic\Builder\NikicToDomain;
 use PhpParser\Node;
 use PhpParser\Node\Name;
 use PhpParser\Node\Stmt;
+use TimLappe\Elephactor\Adapter\Php\Ast\Nikic\TokenSpanExtraBlankLines;
 use TimLappe\Elephactor\Domain\Php\AST\Model as Ast;
 
 final class MemberMapper
 {
+    use NodeAttributeMapperTrait;
+
     public function __construct(
         private readonly ValueMapper $valueMapper,
         private readonly NodeMapperContext $context,
@@ -25,8 +28,25 @@ final class MemberMapper
     {
         $result = [];
 
+        $tokens = $this->context->sourceTokens();
+        $prevMember = null;
+
         foreach ($members as $member) {
-            $result[] = $this->mapMember($member);
+            if ($member instanceof Stmt\Nop) {
+                continue;
+            }
+
+            $mapped = $this->mapMember($member);
+            if ($prevMember !== null && $mapped instanceof Ast\AbstractNode) {
+                $extra = TokenSpanExtraBlankLines::betweenNodes($prevMember, $member, $tokens);
+                if ($extra > 0) {
+                    $mapped->setLeadingExtraNewlinesBefore($extra);
+                }
+            }
+
+            $result[] = $mapped;
+
+            $prevMember = $member;
         }
 
         return $result;
@@ -62,76 +82,94 @@ final class MemberMapper
         $hasBody = $method->stmts !== null;
         $bodyStatements = $hasBody ? $this->context->statementMapper()->mapStatements($method->stmts ?? []) : [];
 
-        return new Ast\Declaration\MethodDeclarationNode(
-            $this->valueMapper->getTypeMapper()->mapIdentifier($method->name),
-            $this->valueMapper->mapMethodModifiers($method->flags, !$hasBody),
-            $this->valueMapper->mapAttributeGroups($method->attrGroups),
-            $this->context->expressionMapper()->mapParameters($method->params),
-            $bodyStatements,
-            $this->valueMapper->getTypeMapper()->mapType($method->returnType),
-            $method->byRef,
-            $this->valueMapper->mapDocBlock($method->getDocComment()),
+        return $this->applyAttributes(
+            $method,
+            new Ast\Declaration\MethodDeclarationNode(
+                $this->valueMapper->getTypeMapper()->mapIdentifier($method->name),
+                $this->valueMapper->mapMethodModifiers($method->flags, !$hasBody),
+                $this->valueMapper->mapAttributeGroups($method->attrGroups),
+                $this->context->expressionMapper()->mapParameters($method->params),
+                $bodyStatements,
+                $this->valueMapper->getTypeMapper()->mapType($method->returnType),
+                $method->byRef,
+                $this->valueMapper->mapDocBlock($method->getDocComment()),
+            ),
         );
     }
 
     private function mapPropertyDeclaration(Stmt\Property $property): Ast\Declaration\PropertyDeclarationNode
     {
-        return new Ast\Declaration\PropertyDeclarationNode(
-            $this->valueMapper->mapPropertyModifiers($property->flags),
-            array_values(array_map(
-                fn (Node\Stmt\PropertyProperty $prop): Ast\Declaration\PropertyNode => $this->mapPropertyNode($prop),
-                $property->props,
-            )),
-            $this->valueMapper->mapAttributeGroups($property->attrGroups),
-            $this->valueMapper->getTypeMapper()->mapType($property->type),
-            $this->valueMapper->mapDocBlock($property->getDocComment()),
+        return $this->applyAttributes(
+            $property,
+            new Ast\Declaration\PropertyDeclarationNode(
+                $this->valueMapper->mapPropertyModifiers($property->flags),
+                array_values(array_map(
+                    fn (Node\Stmt\PropertyProperty $prop): Ast\Declaration\PropertyNode => $this->mapPropertyNode($prop),
+                    $property->props,
+                )),
+                $this->valueMapper->mapAttributeGroups($property->attrGroups),
+                $this->valueMapper->getTypeMapper()->mapType($property->type),
+                $this->valueMapper->mapDocBlock($property->getDocComment()),
+            ),
         );
     }
 
     private function mapPropertyNode(Node\Stmt\PropertyProperty $property): Ast\Declaration\PropertyNode
     {
-        return new Ast\Declaration\PropertyNode(
-            $this->valueMapper->getTypeMapper()->mapIdentifier($property->name),
-            $property->default !== null ? $this->context->expressionMapper()->mapExpression($property->default) : null,
+        return $this->applyAttributes(
+            $property,
+            new Ast\Declaration\PropertyNode(
+                $this->valueMapper->getTypeMapper()->mapIdentifier($property->name),
+                $property->default !== null ? $this->context->expressionMapper()->mapExpression($property->default) : null,
+            ),
         );
     }
 
     private function mapClassConstantDeclaration(Stmt\ClassConst $const): Ast\Declaration\ClassConstantDeclarationNode
     {
-        return new Ast\Declaration\ClassConstantDeclarationNode(
-            $this->valueMapper->mapVisibility($const->flags),
-            array_values(array_map(
-                fn (Node\Const_ $constElement): Ast\Declaration\ConstElementNode => new Ast\Declaration\ConstElementNode(
-                    $this->valueMapper->getTypeMapper()->mapIdentifier($constElement->name),
-                    $this->context->expressionMapper()->mapExpression($constElement->value),
-                ),
-                $const->consts,
-            )),
-            $this->valueMapper->mapAttributeGroups($const->attrGroups),
-            ($const->flags & Stmt\Class_::MODIFIER_FINAL) === Stmt\Class_::MODIFIER_FINAL,
-            $this->valueMapper->getTypeMapper()->mapType($const->type),
-            $this->valueMapper->mapDocBlock($const->getDocComment()),
+        return $this->applyAttributes(
+            $const,
+            new Ast\Declaration\ClassConstantDeclarationNode(
+                $this->valueMapper->mapVisibility($const->flags),
+                array_values(array_map(
+                    fn (Node\Const_ $constElement): Ast\Declaration\ConstElementNode => new Ast\Declaration\ConstElementNode(
+                        $this->valueMapper->getTypeMapper()->mapIdentifier($constElement->name),
+                        $this->context->expressionMapper()->mapExpression($constElement->value),
+                    ),
+                    $const->consts,
+                )),
+                $this->valueMapper->mapAttributeGroups($const->attrGroups),
+                ($const->flags & Stmt\Class_::MODIFIER_FINAL) === Stmt\Class_::MODIFIER_FINAL,
+                $this->valueMapper->getTypeMapper()->mapType($const->type),
+                $this->valueMapper->mapDocBlock($const->getDocComment()),
+            ),
         );
     }
 
     private function mapEnumCase(Stmt\EnumCase $case): Ast\Declaration\EnumCaseNode
     {
-        return new Ast\Declaration\EnumCaseNode(
-            $this->valueMapper->getTypeMapper()->mapIdentifier($case->name),
-            $this->valueMapper->mapAttributeGroups($case->attrGroups),
-            $case->expr !== null ? $this->context->expressionMapper()->mapExpression($case->expr) : null,
-            $this->valueMapper->mapDocBlock($case->getDocComment()),
+        return $this->applyAttributes(
+            $case,
+            new Ast\Declaration\EnumCaseNode(
+                $this->valueMapper->getTypeMapper()->mapIdentifier($case->name),
+                $this->valueMapper->mapAttributeGroups($case->attrGroups),
+                $case->expr !== null ? $this->context->expressionMapper()->mapExpression($case->expr) : null,
+                $this->valueMapper->mapDocBlock($case->getDocComment()),
+            ),
         );
     }
 
     private function mapTraitUse(Stmt\TraitUse $use): Ast\Declaration\TraitUseNode
     {
-        return new Ast\Declaration\TraitUseNode(
-            array_values(array_map(
-                fn (Name $traitName): Ast\Value\QualifiedName => $this->valueMapper->getTypeMapper()->mapQualifiedName($traitName),
-                $use->traits,
-            )),
-            $this->mapTraitAdaptations($use->adaptations),
+        return $this->applyAttributes(
+            $use,
+            new Ast\Declaration\TraitUseNode(
+                array_values(array_map(
+                    fn (Name $traitName): Ast\Value\QualifiedName => $this->valueMapper->getTypeMapper()->mapQualifiedName($traitName),
+                    $use->traits,
+                )),
+                $this->mapTraitAdaptations($use->adaptations),
+            ),
         );
     }
 
@@ -163,11 +201,14 @@ final class MemberMapper
 
     private function mapTraitAliasAdaptation(Stmt\TraitUseAdaptation\Alias $alias): Ast\UseTrait\TraitAliasAdaptationNode
     {
-        return new Ast\UseTrait\TraitAliasAdaptationNode(
-            $this->valueMapper->getTypeMapper()->mapIdentifier($alias->method),
-            $alias->newName !== null ? $this->valueMapper->getTypeMapper()->mapIdentifier($alias->newName) : null,
-            $alias->newModifier !== null ? $this->valueMapper->mapVisibility($alias->newModifier) : null,
-            $alias->trait !== null ? $this->valueMapper->getTypeMapper()->mapQualifiedName($alias->trait) : null,
+        return $this->applyAttributes(
+            $alias,
+            new Ast\UseTrait\TraitAliasAdaptationNode(
+                $this->valueMapper->getTypeMapper()->mapIdentifier($alias->method),
+                $alias->newName !== null ? $this->valueMapper->getTypeMapper()->mapIdentifier($alias->newName) : null,
+                $alias->newModifier !== null ? $this->valueMapper->mapVisibility($alias->newModifier) : null,
+                $alias->trait !== null ? $this->valueMapper->getTypeMapper()->mapQualifiedName($alias->trait) : null,
+            ),
         );
     }
 
@@ -177,13 +218,16 @@ final class MemberMapper
             throw new \RuntimeException('Unsupported trait precedence: ' . $precedence::class);
         }
 
-        return new Ast\UseTrait\TraitPrecedenceAdaptationNode(
-            $this->valueMapper->getTypeMapper()->mapQualifiedName($precedence->trait),
-            $this->valueMapper->getTypeMapper()->mapIdentifier($precedence->method),
-            array_values(array_map(
-                fn (Name $name): Ast\Value\QualifiedName => $this->valueMapper->getTypeMapper()->mapQualifiedName($name),
-                $precedence->insteadof,
-            )),
+        return $this->applyAttributes(
+            $precedence,
+            new Ast\UseTrait\TraitPrecedenceAdaptationNode(
+                $this->valueMapper->getTypeMapper()->mapQualifiedName($precedence->trait),
+                $this->valueMapper->getTypeMapper()->mapIdentifier($precedence->method),
+                array_values(array_map(
+                    fn (Name $name): Ast\Value\QualifiedName => $this->valueMapper->getTypeMapper()->mapQualifiedName($name),
+                    $precedence->insteadof,
+                )),
+            ),
         );
     }
 }

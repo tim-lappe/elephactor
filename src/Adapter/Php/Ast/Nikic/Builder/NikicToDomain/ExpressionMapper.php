@@ -13,6 +13,8 @@ use TimLappe\Elephactor\Domain\Php\AST\Model as Ast;
 
 final class ExpressionMapper
 {
+    use NodeAttributeMapperTrait;
+
     public function __construct(
         private readonly ValueMapper $valueMapper,
         private readonly NodeMapperContext $context,
@@ -31,202 +33,120 @@ final class ExpressionMapper
 
     public function mapExpression(Expr $expression): Ast\ExpressionNode
     {
+        $mapped = null;
+
         if ($expression instanceof Expr\Variable) {
-            return $this->mapVariableExpression($expression);
-        }
-
-        if ($expression instanceof Expr\Assign) {
-            return $this->mapAssignmentExpression($expression);
-        }
-
-        if ($expression instanceof Expr\AssignRef) {
-            return new Ast\Expression\AssignmentExpressionNode(
+            $mapped = $this->mapVariableExpression($expression);
+        } elseif ($expression instanceof Expr\Assign) {
+            $mapped = $this->mapAssignmentExpression($expression);
+        } elseif ($expression instanceof Expr\AssignRef) {
+            $mapped = new Ast\Expression\AssignmentExpressionNode(
                 $this->mapExpression($expression->var),
                 $this->mapExpression($expression->expr),
             );
-        }
-
-        if ($expression instanceof Expr\AssignOp) {
-            return $this->mapCompoundAssignmentExpression($expression);
-        }
-
-        if ($expression instanceof Expr\Array_) {
-            return $this->mapArrayExpression($expression);
-        }
-
-        if ($expression instanceof Expr\ArrayDimFetch) {
-            return $this->mapArrayAccessExpression($expression);
-        }
-
-        if ($expression instanceof Expr\List_) {
-            return $this->mapListExpression($expression);
-        }
-
-        if ($expression instanceof Expr\FuncCall) {
-            return $this->mapFunctionCall($expression);
-        }
-
-        if ($expression instanceof Expr\MethodCall) {
-            return $this->mapMethodCall($expression, false);
-        }
-
-        if ($expression instanceof Expr\NullsafeMethodCall) {
-            return $this->mapMethodCall($expression, true);
-        }
-
-        if ($expression instanceof Expr\StaticCall) {
-            return $this->mapStaticCall($expression);
-        }
-
-        if ($expression instanceof Expr\PropertyFetch) {
-            return $this->mapPropertyFetch($expression, false);
-        }
-
-        if ($expression instanceof Expr\NullsafePropertyFetch) {
-            return $this->mapPropertyFetch($expression, true);
-        }
-
-        if ($expression instanceof Expr\StaticPropertyFetch) {
-            return $this->mapStaticPropertyFetch($expression);
-        }
-
-        if ($expression instanceof Expr\ClassConstFetch) {
-            return $this->mapClassConstantFetch($expression);
-        }
-
-        if ($expression instanceof Expr\ConstFetch) {
-            return $this->mapConstFetchExpression($expression);
-        }
-
-        if ($expression instanceof Expr\BinaryOp) {
-            return $this->mapBinaryExpression($expression);
-        }
-
-        if ($expression instanceof Expr\BooleanNot) {
-            return $this->mapUnaryExpression($expression, Ast\Value\UnaryOperator::LOGICAL_NOT);
-        }
-
-        if ($expression instanceof Expr\BitwiseNot) {
-            return $this->mapUnaryExpression($expression, Ast\Value\UnaryOperator::BITWISE_NOT);
-        }
-
-        if ($expression instanceof Expr\UnaryPlus) {
-            return $this->mapUnaryExpression($expression, Ast\Value\UnaryOperator::PLUS);
-        }
-
-        if ($expression instanceof Expr\UnaryMinus) {
-            return $this->mapUnaryExpression($expression, Ast\Value\UnaryOperator::MINUS);
-        }
-
-        if ($expression instanceof Expr\PostInc) {
-            return $this->mapUnaryExpression($expression, Ast\Value\UnaryOperator::POST_INCREMENT);
-        }
-
-        if ($expression instanceof Expr\PostDec) {
-            return $this->mapUnaryExpression($expression, Ast\Value\UnaryOperator::POST_DECREMENT);
-        }
-
-        if ($expression instanceof Expr\PreInc) {
-            return $this->mapUnaryExpression($expression, Ast\Value\UnaryOperator::PRE_INCREMENT);
-        }
-
-        if ($expression instanceof Expr\PreDec) {
-            return $this->mapUnaryExpression($expression, Ast\Value\UnaryOperator::PRE_DECREMENT);
-        }
-
-        if ($expression instanceof Expr\Ternary) {
-            return $this->mapTernaryExpression($expression);
-        }
-
-        if ($expression instanceof Expr\New_) {
-            return $this->mapNewExpression($expression);
-        }
-
-        if ($expression instanceof Expr\Clone_) {
-            return $this->mapCloneExpression($expression);
-        }
-
-        if ($expression instanceof Expr\Match_) {
-            return $this->mapMatchExpression($expression);
-        }
-
-        if ($expression instanceof Expr\Yield_) {
-            return $this->mapYieldExpression($expression);
-        }
-
-        if ($expression instanceof Expr\YieldFrom) {
-            return new Ast\Expression\YieldFromExpressionNode(
+        } elseif ($expression instanceof Expr\AssignOp) {
+            $mapped = $this->mapCompoundAssignmentExpression($expression);
+        } elseif ($expression instanceof Expr\Array_) {
+            $mapped = $this->mapArrayExpression($expression);
+        } elseif ($expression instanceof Expr\ArrayDimFetch) {
+            $mapped = $this->mapArrayAccessExpression($expression);
+        } elseif ($expression instanceof Expr\List_) {
+            $mapped = $this->mapListExpression($expression);
+        } elseif ($expression instanceof Expr\FuncCall) {
+            $mapped = $this->mapFunctionCall($expression);
+        } elseif ($expression instanceof Expr\MethodCall) {
+            $mapped = $this->mapMethodCall($expression, false);
+        } elseif ($expression instanceof Expr\NullsafeMethodCall) {
+            $mapped = $this->mapMethodCall($expression, true);
+        } elseif ($expression instanceof Expr\StaticCall) {
+            $mapped = $this->mapStaticCall($expression);
+        } elseif ($expression instanceof Expr\PropertyFetch) {
+            $mapped = $this->mapPropertyFetch($expression, false);
+        } elseif ($expression instanceof Expr\NullsafePropertyFetch) {
+            $mapped = $this->mapPropertyFetch($expression, true);
+        } elseif ($expression instanceof Expr\StaticPropertyFetch) {
+            $mapped = $this->mapStaticPropertyFetch($expression);
+        } elseif ($expression instanceof Expr\ClassConstFetch) {
+            $mapped = $this->mapClassConstantFetch($expression);
+        } elseif ($expression instanceof Expr\ConstFetch) {
+            $mapped = $this->mapConstFetchExpression($expression);
+        } elseif ($expression instanceof Expr\BinaryOp) {
+            $mapped = $this->mapBinaryExpression($expression);
+        } elseif ($expression instanceof Expr\BooleanNot) {
+            $mapped = $this->mapUnaryExpression($expression, Ast\Value\UnaryOperator::LOGICAL_NOT);
+        } elseif ($expression instanceof Expr\BitwiseNot) {
+            $mapped = $this->mapUnaryExpression($expression, Ast\Value\UnaryOperator::BITWISE_NOT);
+        } elseif ($expression instanceof Expr\UnaryPlus) {
+            $mapped = $this->mapUnaryExpression($expression, Ast\Value\UnaryOperator::PLUS);
+        } elseif ($expression instanceof Expr\UnaryMinus) {
+            $mapped = $this->mapUnaryExpression($expression, Ast\Value\UnaryOperator::MINUS);
+        } elseif ($expression instanceof Expr\PostInc) {
+            $mapped = $this->mapUnaryExpression($expression, Ast\Value\UnaryOperator::POST_INCREMENT);
+        } elseif ($expression instanceof Expr\PostDec) {
+            $mapped = $this->mapUnaryExpression($expression, Ast\Value\UnaryOperator::POST_DECREMENT);
+        } elseif ($expression instanceof Expr\PreInc) {
+            $mapped = $this->mapUnaryExpression($expression, Ast\Value\UnaryOperator::PRE_INCREMENT);
+        } elseif ($expression instanceof Expr\PreDec) {
+            $mapped = $this->mapUnaryExpression($expression, Ast\Value\UnaryOperator::PRE_DECREMENT);
+        } elseif ($expression instanceof Expr\Ternary) {
+            $mapped = $this->mapTernaryExpression($expression);
+        } elseif ($expression instanceof Expr\New_) {
+            $mapped = $this->mapNewExpression($expression);
+        } elseif ($expression instanceof Expr\Clone_) {
+            $mapped = $this->mapCloneExpression($expression);
+        } elseif ($expression instanceof Expr\Match_) {
+            $mapped = $this->mapMatchExpression($expression);
+        } elseif ($expression instanceof Expr\Yield_) {
+            $mapped = $this->mapYieldExpression($expression);
+        } elseif ($expression instanceof Expr\YieldFrom) {
+            $mapped = new Ast\Expression\YieldFromExpressionNode(
                 $this->mapExpression($expression->expr),
             );
-        }
-
-        if ($expression instanceof Expr\Include_) {
-            return $this->mapIncludeExpression($expression);
-        }
-
-        if ($expression instanceof Expr\Isset_) {
-            return $this->mapIssetExpression($expression);
-        }
-
-        if ($expression instanceof Expr\Empty_) {
-            return new Ast\Expression\EmptyExpressionNode(
+        } elseif ($expression instanceof Expr\Include_) {
+            $mapped = $this->mapIncludeExpression($expression);
+        } elseif ($expression instanceof Expr\Isset_) {
+            $mapped = $this->mapIssetExpression($expression);
+        } elseif ($expression instanceof Expr\Empty_) {
+            $mapped = new Ast\Expression\EmptyExpressionNode(
                 $this->mapExpression($expression->expr),
             );
-        }
-
-        if ($expression instanceof Expr\Eval_) {
-            return new Ast\Expression\EvalExpressionNode(
+        } elseif ($expression instanceof Expr\Eval_) {
+            $mapped = new Ast\Expression\EvalExpressionNode(
                 $this->mapExpression($expression->expr),
             );
-        }
-
-        if ($expression instanceof Expr\Exit_) {
-            return new Ast\Expression\ExitExpressionNode(
+        } elseif ($expression instanceof Expr\Exit_) {
+            $mapped = new Ast\Expression\ExitExpressionNode(
                 $expression->expr !== null ? $this->mapExpression($expression->expr) : null,
                 false,
             );
-        }
-
-        if ($expression instanceof Expr\Print_) {
-            return new Ast\Expression\PrintExpressionNode(
+        } elseif ($expression instanceof Expr\Print_) {
+            $mapped = new Ast\Expression\PrintExpressionNode(
                 $this->mapExpression($expression->expr),
             );
-        }
-
-        if ($expression instanceof Expr\ShellExec) {
-            return $this->mapShellCommandExpression($expression);
-        }
-
-        if ($expression instanceof Expr\Closure) {
-            return $this->mapClosureExpression($expression);
-        }
-
-        if ($expression instanceof Expr\ArrowFunction) {
-            return $this->mapArrowFunctionExpression($expression);
-        }
-
-        if ($expression instanceof Expr\ErrorSuppress) {
-            return new Ast\Expression\ErrorSuppressExpressionNode(
+        } elseif ($expression instanceof Expr\ShellExec) {
+            $mapped = $this->mapShellCommandExpression($expression);
+        } elseif ($expression instanceof Expr\Closure) {
+            $mapped = $this->mapClosureExpression($expression);
+        } elseif ($expression instanceof Expr\ArrowFunction) {
+            $mapped = $this->mapArrowFunctionExpression($expression);
+        } elseif ($expression instanceof Expr\ErrorSuppress) {
+            $mapped = new Ast\Expression\ErrorSuppressExpressionNode(
                 $this->mapExpression($expression->expr),
             );
-        }
-
-        if ($expression instanceof Expr\Throw_) {
-            return new Ast\Expression\ThrowExpressionNode(
+        } elseif ($expression instanceof Expr\Throw_) {
+            $mapped = new Ast\Expression\ThrowExpressionNode(
                 $this->mapExpression($expression->expr),
             );
+        } elseif ($expression instanceof Expr\Instanceof_) {
+            $mapped = $this->mapInstanceofExpression($expression);
+        } elseif ($expression instanceof Expr\Cast) {
+            $mapped = $this->mapCastExpression($expression);
+        } elseif ($expression instanceof Node\Scalar) {
+            $mapped = $this->mapLiteralExpression($expression);
         }
 
-        if ($expression instanceof Expr\Instanceof_) {
-            return $this->mapInstanceofExpression($expression);
-        }
-
-        if ($expression instanceof Expr\Cast) {
-            return $this->mapCastExpression($expression);
-        }
-
-        if ($expression instanceof Node\Scalar) {
-            return $this->mapLiteralExpression($expression);
+        if ($mapped !== null) {
+            return $this->applyAttributes($expression, $mapped);
         }
 
         throw new \RuntimeException('Unsupported expression: ' . $expression::class);
@@ -237,16 +157,22 @@ final class ExpressionMapper
         $name = $variable->name;
 
         if (is_string($name)) {
-            return new Ast\Expression\VariableExpressionNode(
-                $this->valueMapper->getTypeMapper()->mapIdentifier($name),
+            return $this->applyAttributes(
+                $variable,
+                new Ast\Expression\VariableExpressionNode(
+                    $this->valueMapper->getTypeMapper()->mapIdentifier($name),
+                ),
             );
         }
 
         /** @var Expr $nameExpr */
         $nameExpr = $name;
 
-        return new Ast\Expression\VariableExpressionNode(
-            $this->mapExpression($nameExpr),
+        return $this->applyAttributes(
+            $variable,
+            new Ast\Expression\VariableExpressionNode(
+                $this->mapExpression($nameExpr),
+            ),
         );
     }
 
@@ -256,25 +182,34 @@ final class ExpressionMapper
             return $this->mapListExpressionWithValue($assign->var, $assign->expr, $assign);
         }
 
-        return new Ast\Expression\AssignmentExpressionNode(
-            $this->mapExpression($assign->var),
-            $this->mapExpression($assign->expr),
+        return $this->applyAttributes(
+            $assign,
+            new Ast\Expression\AssignmentExpressionNode(
+                $this->mapExpression($assign->var),
+                $this->mapExpression($assign->expr),
+            ),
         );
     }
 
     private function mapListExpression(Expr\List_ $list): Ast\Expression\ListExpressionNode
     {
-        return new Ast\Expression\ListExpressionNode(
-            $this->mapListItems($list->items),
-            new Ast\Expression\LiteralExpressionNode(Ast\Value\LiteralValue::null()),
+        return $this->applyAttributes(
+            $list,
+            new Ast\Expression\ListExpressionNode(
+                $this->mapListItems($list->items),
+                new Ast\Expression\LiteralExpressionNode(Ast\Value\LiteralValue::null()),
+            ),
         );
     }
 
     private function mapListExpressionWithValue(Expr\List_ $list, Expr $value, Node $locationSource): Ast\Expression\ListExpressionNode
     {
-        return new Ast\Expression\ListExpressionNode(
-            $this->mapListItems($list->items),
-            $this->mapExpression($value),
+        return $this->applyAttributes(
+            $locationSource,
+            new Ast\Expression\ListExpressionNode(
+                $this->mapListItems($list->items),
+                $this->mapExpression($value),
+            ),
         );
     }
 
@@ -291,9 +226,12 @@ final class ExpressionMapper
                 continue;
             }
 
-            $result[] = new Ast\Expression\ListItemNode(
-                $item->key !== null ? $this->mapExpression($item->key) : null,
-                $this->mapExpression($item->value),
+            $result[] = $this->applyAttributes(
+                $item,
+                new Ast\Expression\ListItemNode(
+                    $item->key !== null ? $this->mapExpression($item->key) : null,
+                    $this->mapExpression($item->value),
+                ),
             );
         }
 
@@ -307,30 +245,39 @@ final class ExpressionMapper
             static fn (?Node\ArrayItem $item): bool => $item !== null,
         ));
 
-        return new Ast\Expression\ArrayExpressionNode(
-            array_map(
-                fn (Node\ArrayItem $item): Ast\Expression\ArrayItemNode => $this->mapArrayItem($item),
-                $items,
+        return $this->applyAttributes(
+            $array,
+            new Ast\Expression\ArrayExpressionNode(
+                array_map(
+                    fn (Node\ArrayItem $item): Ast\Expression\ArrayItemNode => $this->mapArrayItem($item),
+                    $items,
+                ),
+                ($array->getAttribute('kind') ?? Expr\Array_::KIND_SHORT) === Expr\Array_::KIND_SHORT,
             ),
-            ($array->getAttribute('kind') ?? Expr\Array_::KIND_SHORT) === Expr\Array_::KIND_SHORT,
         );
     }
 
     private function mapArrayItem(Node\ArrayItem $item): Ast\Expression\ArrayItemNode
     {
-        return new Ast\Expression\ArrayItemNode(
-            $this->mapExpression($item->value),
-            $item->key !== null ? $this->mapExpression($item->key) : null,
-            $item->byRef,
-            $item->unpack,
+        return $this->applyAttributes(
+            $item,
+            new Ast\Expression\ArrayItemNode(
+                $this->mapExpression($item->value),
+                $item->key !== null ? $this->mapExpression($item->key) : null,
+                $item->byRef,
+                $item->unpack,
+            ),
         );
     }
 
     private function mapArrayAccessExpression(Expr\ArrayDimFetch $fetch): Ast\Expression\ArrayAccessExpressionNode
     {
-        return new Ast\Expression\ArrayAccessExpressionNode(
-            $this->mapExpression($fetch->var),
-            $fetch->dim !== null ? $this->mapExpression($fetch->dim) : null,
+        return $this->applyAttributes(
+            $fetch,
+            new Ast\Expression\ArrayAccessExpressionNode(
+                $this->mapExpression($fetch->var),
+                $fetch->dim !== null ? $this->mapExpression($fetch->dim) : null,
+            ),
         );
     }
 
@@ -340,9 +287,12 @@ final class ExpressionMapper
             ? $this->valueMapper->getTypeMapper()->mapQualifiedName($call->name)
             : $this->mapExpression($call->name);
 
-        return new Ast\Expression\FunctionCallExpressionNode(
-            $callable,
-            $this->mapArguments($call->args),
+        return $this->applyAttributes(
+            $call,
+            new Ast\Expression\FunctionCallExpressionNode(
+                $callable,
+                $this->mapArguments($call->args),
+            ),
         );
     }
 
@@ -352,11 +302,14 @@ final class ExpressionMapper
             ? $this->mapExpression($call->name)
             : $this->valueMapper->getTypeMapper()->mapIdentifier($call->name);
 
-        return new Ast\Expression\MethodCallExpressionNode(
-            $this->mapExpression($call->var),
-            $method,
-            $this->mapArguments($call->args),
-            $nullsafe,
+        return $this->applyAttributes(
+            $call,
+            new Ast\Expression\MethodCallExpressionNode(
+                $this->mapExpression($call->var),
+                $method,
+                $this->mapArguments($call->args),
+                $nullsafe,
+            ),
         );
     }
 
@@ -370,10 +323,13 @@ final class ExpressionMapper
             ? $this->mapExpression($call->name)
             : $this->valueMapper->getTypeMapper()->mapIdentifier($call->name);
 
-        return new Ast\Expression\StaticCallExpressionNode(
-            $classReference,
-            $method,
-            $this->mapArguments($call->args),
+        return $this->applyAttributes(
+            $call,
+            new Ast\Expression\StaticCallExpressionNode(
+                $classReference,
+                $method,
+                $this->mapArguments($call->args),
+            ),
         );
     }
 
@@ -387,10 +343,13 @@ final class ExpressionMapper
             throw new \RuntimeException('Unsupported property fetch name');
         }
 
-        return new Ast\Expression\PropertyFetchExpressionNode(
-            $this->mapExpression($fetch->var),
-            $property,
-            $nullsafe,
+        return $this->applyAttributes(
+            $fetch,
+            new Ast\Expression\PropertyFetchExpressionNode(
+                $this->mapExpression($fetch->var),
+                $property,
+                $nullsafe,
+            ),
         );
     }
 
@@ -408,9 +367,12 @@ final class ExpressionMapper
             ? $this->valueMapper->getTypeMapper()->mapQualifiedName($fetch->class)
             : $this->mapExpression($fetch->class);
 
-        return new Ast\Expression\StaticPropertyFetchExpressionNode(
-            $classReference,
-            $property,
+        return $this->applyAttributes(
+            $fetch,
+            new Ast\Expression\StaticPropertyFetchExpressionNode(
+                $classReference,
+                $property,
+            ),
         );
     }
 
@@ -426,9 +388,12 @@ final class ExpressionMapper
 
         $constantName = $this->valueMapper->getTypeMapper()->mapIdentifier($fetch->name);
 
-        return new Ast\Expression\ClassConstantFetchExpressionNode(
-            $classReference,
-            $constantName,
+        return $this->applyAttributes(
+            $fetch,
+            new Ast\Expression\ClassConstantFetchExpressionNode(
+                $classReference,
+                $constantName,
+            ),
         );
     }
 
@@ -436,7 +401,7 @@ final class ExpressionMapper
     {
         $lowerName = $fetch->name->toLowerString();
 
-        return match ($lowerName) {
+        $mapped = match ($lowerName) {
             'true' => new Ast\Expression\LiteralExpressionNode(
                 Ast\Value\LiteralValue::boolean(true),
             ),
@@ -450,14 +415,19 @@ final class ExpressionMapper
                 $this->valueMapper->getTypeMapper()->mapQualifiedName($fetch->name),
             ),
         };
+
+        return $this->applyAttributes($fetch, $mapped);
     }
 
     private function mapBinaryExpression(Expr\BinaryOp $binary): Ast\Expression\BinaryExpressionNode
     {
-        return new Ast\Expression\BinaryExpressionNode(
-            $this->mapBinaryOperator($binary),
-            $this->mapExpression($binary->left),
-            $this->mapExpression($binary->right),
+        return $this->applyAttributes(
+            $binary,
+            new Ast\Expression\BinaryExpressionNode(
+                $this->mapBinaryOperator($binary),
+                $this->mapExpression($binary->left),
+                $this->mapExpression($binary->right),
+            ),
         );
     }
 
@@ -497,24 +467,35 @@ final class ExpressionMapper
 
     private function mapUnaryExpression(Expr $node, Ast\Value\UnaryOperator $operator): Ast\Expression\UnaryExpressionNode
     {
-        $expression = $node instanceof Expr\PostInc || $node instanceof Expr\PostDec
-            ? $this->mapExpression($node->var)
-            : ($node instanceof Expr\PreInc || $node instanceof Expr\PreDec
-                ? $this->mapExpression($node->var)
-                : (property_exists($node, 'expr') && $node->expr instanceof Expr ? $this->mapExpression($node->expr) : throw new \RuntimeException('Unsupported unary expression')));
+        if ($node instanceof Expr\PostInc || $node instanceof Expr\PostDec || $node instanceof Expr\PreInc || $node instanceof Expr\PreDec) {
+            $expression = $this->mapExpression($node->var);
+        } elseif ($node instanceof Expr\UnaryPlus
+            || $node instanceof Expr\UnaryMinus
+            || $node instanceof Expr\BooleanNot
+            || $node instanceof Expr\BitwiseNot) {
+            $expression = $this->mapExpression($node->expr);
+        } else {
+            throw new \RuntimeException('Unsupported unary expression');
+        }
 
-        return new Ast\Expression\UnaryExpressionNode(
-            $operator,
-            $expression,
+        return $this->applyAttributes(
+            $node,
+            new Ast\Expression\UnaryExpressionNode(
+                $operator,
+                $expression,
+            ),
         );
     }
 
     private function mapCompoundAssignmentExpression(Expr\AssignOp $assign): Ast\Expression\CompoundAssignmentExpressionNode
     {
-        return new Ast\Expression\CompoundAssignmentExpressionNode(
-            $this->mapAssignmentOperator($assign),
-            $this->mapExpression($assign->var),
-            $this->mapExpression($assign->expr),
+        return $this->applyAttributes(
+            $assign,
+            new Ast\Expression\CompoundAssignmentExpressionNode(
+                $this->mapAssignmentOperator($assign),
+                $this->mapExpression($assign->var),
+                $this->mapExpression($assign->expr),
+            ),
         );
     }
 
@@ -540,10 +521,13 @@ final class ExpressionMapper
 
     private function mapTernaryExpression(Expr\Ternary $ternary): Ast\Expression\TernaryExpressionNode
     {
-        return new Ast\Expression\TernaryExpressionNode(
-            $this->mapExpression($ternary->cond),
-            $ternary->if !== null ? $this->mapExpression($ternary->if) : null,
-            $this->mapExpression($ternary->else),
+        return $this->applyAttributes(
+            $ternary,
+            new Ast\Expression\TernaryExpressionNode(
+                $this->mapExpression($ternary->cond),
+                $ternary->if !== null ? $this->mapExpression($ternary->if) : null,
+                $this->mapExpression($ternary->else),
+            ),
         );
     }
 
@@ -557,9 +541,12 @@ final class ExpressionMapper
             ? $this->valueMapper->getTypeMapper()->mapQualifiedName($new->class)
             : $this->mapExpression($new->class);
 
-        return new Ast\Expression\NewExpressionNode(
-            $classReference,
-            $this->mapArguments($new->args),
+        return $this->applyAttributes(
+            $new,
+            new Ast\Expression\NewExpressionNode(
+                $classReference,
+                $this->mapArguments($new->args),
+            ),
         );
     }
 
@@ -568,34 +555,43 @@ final class ExpressionMapper
         /** @var Stmt\Class_ $class */
         $class = $new->class;
 
-        return new Ast\Expression\AnonymousClassExpressionNode(
-            $this->mapArguments($new->args),
-            $this->valueMapper->mapAttributeGroups($class->attrGroups),
-            array_values(array_map(
-                fn (Name $interface): Ast\Value\QualifiedName => $this->valueMapper->getTypeMapper()->mapQualifiedName($interface),
-                $class->implements,
-            )),
-            $this->memberMapper()->mapClassMembers($class->stmts),
-            $this->valueMapper->mapClassModifiers($class->flags),
-            $class->extends !== null ? $this->valueMapper->getTypeMapper()->mapQualifiedName($class->extends) : null,
+        return $this->applyAttributes(
+            $new,
+            new Ast\Expression\AnonymousClassExpressionNode(
+                $this->mapArguments($new->args),
+                $this->valueMapper->mapAttributeGroups($class->attrGroups),
+                array_values(array_map(
+                    fn (Name $interface): Ast\Value\QualifiedName => $this->valueMapper->getTypeMapper()->mapQualifiedName($interface),
+                    $class->implements,
+                )),
+                $this->memberMapper()->mapClassMembers($class->stmts),
+                $this->valueMapper->mapClassModifiers($class->flags),
+                $class->extends !== null ? $this->valueMapper->getTypeMapper()->mapQualifiedName($class->extends) : null,
+            ),
         );
     }
 
     private function mapCloneExpression(Expr\Clone_ $clone): Ast\Expression\CloneExpressionNode
     {
-        return new Ast\Expression\CloneExpressionNode(
-            $this->mapExpression($clone->expr),
+        return $this->applyAttributes(
+            $clone,
+            new Ast\Expression\CloneExpressionNode(
+                $this->mapExpression($clone->expr),
+            ),
         );
     }
 
     private function mapMatchExpression(Expr\Match_ $match): Ast\Expression\MatchExpressionNode
     {
-        return new Ast\Expression\MatchExpressionNode(
-            $this->mapExpression($match->cond),
-            array_values(array_map(
-                fn (Node\MatchArm $arm): Ast\Expression\MatchArmNode => $this->mapMatchArm($arm),
-                $match->arms,
-            )),
+        return $this->applyAttributes(
+            $match,
+            new Ast\Expression\MatchExpressionNode(
+                $this->mapExpression($match->cond),
+                array_values(array_map(
+                    fn (Node\MatchArm $arm): Ast\Expression\MatchArmNode => $this->mapMatchArm($arm),
+                    $match->arms,
+                )),
+            ),
         );
     }
 
@@ -605,17 +601,23 @@ final class ExpressionMapper
             ? array_map(fn (Expr $expr): Ast\ExpressionNode => $this->mapExpression($expr), $arm->conds)
             : [];
 
-        return new Ast\Expression\MatchArmNode(
-            $conditions,
-            $this->mapExpression($arm->body),
+        return $this->applyAttributes(
+            $arm,
+            new Ast\Expression\MatchArmNode(
+                $conditions,
+                $this->mapExpression($arm->body),
+            ),
         );
     }
 
     private function mapYieldExpression(Expr\Yield_ $yield): Ast\Expression\YieldExpressionNode
     {
-        return new Ast\Expression\YieldExpressionNode(
-            $yield->value !== null ? $this->mapExpression($yield->value) : null,
-            $yield->key !== null ? $this->mapExpression($yield->key) : null,
+        return $this->applyAttributes(
+            $yield,
+            new Ast\Expression\YieldExpressionNode(
+                $yield->value !== null ? $this->mapExpression($yield->value) : null,
+                $yield->key !== null ? $this->mapExpression($yield->key) : null,
+            ),
         );
     }
 
@@ -629,16 +631,22 @@ final class ExpressionMapper
             default => throw new \RuntimeException('Unsupported include type'),
         };
 
-        return new Ast\Expression\IncludeExpressionNode(
-            $kind,
-            $this->mapExpression($include->expr),
+        return $this->applyAttributes(
+            $include,
+            new Ast\Expression\IncludeExpressionNode(
+                $kind,
+                $this->mapExpression($include->expr),
+            ),
         );
     }
 
     private function mapIssetExpression(Expr\Isset_ $isset): Ast\Expression\IssetExpressionNode
     {
-        return new Ast\Expression\IssetExpressionNode(
-            array_values(array_map(fn (Expr $expr): Ast\ExpressionNode => $this->mapExpression($expr), $isset->vars)),
+        return $this->applyAttributes(
+            $isset,
+            new Ast\Expression\IssetExpressionNode(
+                array_values(array_map(fn (Expr $expr): Ast\ExpressionNode => $this->mapExpression($expr), $isset->vars)),
+            ),
         );
     }
 
@@ -655,44 +663,56 @@ final class ExpressionMapper
             $parts[] = $this->mapExpression($part);
         }
 
-        return new Ast\Expression\ShellCommandExpressionNode(
-            $parts,
+        return $this->applyAttributes(
+            $shellExec,
+            new Ast\Expression\ShellCommandExpressionNode(
+                $parts,
+            ),
         );
     }
 
     private function mapClosureExpression(Expr\Closure $closure): Ast\Expression\ClosureExpressionNode
     {
-        return new Ast\Expression\ClosureExpressionNode(
-            $this->valueMapper->mapAttributeGroups($closure->attrGroups),
-            $this->mapParameters($closure->params),
-            array_values(array_map(
-                fn (Expr\ClosureUse $use): Ast\Expression\ClosureUseVariableNode => $this->mapClosureUse($use),
-                $closure->uses,
-            )),
-            $this->statementMapper()->mapStatements($closure->stmts ?? []),
-            $this->valueMapper->getTypeMapper()->mapType($closure->returnType),
-            $closure->static,
-            $closure->byRef,
+        return $this->applyAttributes(
+            $closure,
+            new Ast\Expression\ClosureExpressionNode(
+                $this->valueMapper->mapAttributeGroups($closure->attrGroups),
+                $this->mapParameters($closure->params),
+                array_values(array_map(
+                    fn (Expr\ClosureUse $use): Ast\Expression\ClosureUseVariableNode => $this->mapClosureUse($use),
+                    $closure->uses,
+                )),
+                $this->statementMapper()->mapStatements($closure->stmts ?? []),
+                $this->valueMapper->getTypeMapper()->mapType($closure->returnType),
+                $closure->static,
+                $closure->byRef,
+            ),
         );
     }
 
     private function mapArrowFunctionExpression(Expr\ArrowFunction $arrow): Ast\Expression\ArrowFunctionExpressionNode
     {
-        return new Ast\Expression\ArrowFunctionExpressionNode(
-            $this->valueMapper->mapAttributeGroups($arrow->attrGroups),
-            $this->mapParameters($arrow->params),
-            $this->mapExpression($arrow->expr),
-            $this->valueMapper->getTypeMapper()->mapType($arrow->returnType),
-            $arrow->static,
-            $arrow->byRef,
+        return $this->applyAttributes(
+            $arrow,
+            new Ast\Expression\ArrowFunctionExpressionNode(
+                $this->valueMapper->mapAttributeGroups($arrow->attrGroups),
+                $this->mapParameters($arrow->params),
+                $this->mapExpression($arrow->expr),
+                $this->valueMapper->getTypeMapper()->mapType($arrow->returnType),
+                $arrow->static,
+                $arrow->byRef,
+            ),
         );
     }
 
     private function mapClosureUse(Expr\ClosureUse $use): Ast\Expression\ClosureUseVariableNode
     {
-        return new Ast\Expression\ClosureUseVariableNode(
-            $this->expectSimpleVariable($use->var),
-            $use->byRef,
+        return $this->applyAttributes(
+            $use,
+            new Ast\Expression\ClosureUseVariableNode(
+                $this->expectSimpleVariable($use->var),
+                $use->byRef,
+            ),
         );
     }
 
@@ -706,9 +726,12 @@ final class ExpressionMapper
             throw new \RuntimeException('Unsupported instanceof class');
         }
 
-        return new Ast\Expression\InstanceofExpressionNode(
-            $this->mapExpression($instanceof->expr),
-            $reference,
+        return $this->applyAttributes(
+            $instanceof,
+            new Ast\Expression\InstanceofExpressionNode(
+                $this->mapExpression($instanceof->expr),
+                $reference,
+            ),
         );
     }
 
@@ -725,28 +748,33 @@ final class ExpressionMapper
             default => throw new \RuntimeException('Unsupported cast type'),
         };
 
-        return new Ast\Expression\CastExpressionNode(
-            $type,
-            $this->mapExpression($cast->expr),
+        return $this->applyAttributes(
+            $cast,
+            new Ast\Expression\CastExpressionNode(
+                $type,
+                $this->mapExpression($cast->expr),
+            ),
         );
     }
 
     private function mapLiteralExpression(Node\Scalar $scalar): Ast\ExpressionNode
     {
+        $mapped = null;
+
         if ($scalar instanceof Node\Scalar\LNumber) {
-            return new Ast\Expression\LiteralExpressionNode(
+            $mapped = new Ast\Expression\LiteralExpressionNode(
                 Ast\Value\LiteralValue::integer($scalar->value),
             );
         }
 
         if ($scalar instanceof Node\Scalar\DNumber) {
-            return new Ast\Expression\LiteralExpressionNode(
+            $mapped = new Ast\Expression\LiteralExpressionNode(
                 Ast\Value\LiteralValue::float($scalar->value),
             );
         }
 
         if ($scalar instanceof Node\Scalar\String_) {
-            return new Ast\Expression\LiteralExpressionNode(
+            $mapped = new Ast\Expression\LiteralExpressionNode(
                 Ast\Value\LiteralValue::string($scalar->value),
             );
         }
@@ -756,12 +784,16 @@ final class ExpressionMapper
         }
 
         if ($scalar instanceof Node\Scalar\MagicConst) {
-            return new Ast\Expression\ConstantFetchExpressionNode(
+            $mapped = new Ast\Expression\ConstantFetchExpressionNode(
                 new Ast\Value\QualifiedName([new Ast\Value\Identifier($scalar->getName())]),
             );
         }
 
-        throw new \RuntimeException('Unsupported scalar type');
+        if ($mapped === null) {
+            throw new \RuntimeException('Unsupported scalar type');
+        }
+
+        return $this->applyAttributes($scalar, $mapped);
     }
 
     private function mapEncapsedStringExpression(Node\Scalar\Encapsed $encapsed): Ast\Expression\EncapsedStringExpressionNode
@@ -786,16 +818,22 @@ final class ExpressionMapper
             );
         }
 
-        return new Ast\Expression\EncapsedStringExpressionNode(
-            $kind,
-            $parts,
+        return $this->applyAttributes(
+            $encapsed,
+            new Ast\Expression\EncapsedStringExpressionNode(
+                $kind,
+                $parts,
+            ),
         );
     }
 
     private function mapEncapsedStringPart(Node\InterpolatedStringPart $part): Ast\Expression\EncapsedStringPartNode
     {
-        return new Ast\Expression\EncapsedStringPartNode(
-            $part->value,
+        return $this->applyAttributes(
+            $part,
+            new Ast\Expression\EncapsedStringPartNode(
+                $part->value,
+            ),
         );
     }
 
@@ -822,15 +860,18 @@ final class ExpressionMapper
             throw new \RuntimeException('Unsupported parameter variable');
         }
 
-        return new Ast\Argument\ParameterNode(
-            $this->expectSimpleVariable($parameter->var),
-            $this->valueMapper->getTypeMapper()->mapType($parameter->type),
-            $parameter->byRef ? Ast\Value\ParameterPassingMode::BY_REFERENCE : Ast\Value\ParameterPassingMode::BY_VALUE,
-            $parameter->variadic,
-            $parameter->default !== null ? $this->mapExpression($parameter->default) : null,
-            $visibility,
-            ($parameter->flags & Stmt\Class_::MODIFIER_READONLY) === Stmt\Class_::MODIFIER_READONLY,
-            $this->valueMapper->mapAttributeGroups($parameter->attrGroups),
+        return $this->applyAttributes(
+            $parameter,
+            new Ast\Argument\ParameterNode(
+                $this->expectSimpleVariable($parameter->var),
+                $this->valueMapper->getTypeMapper()->mapType($parameter->type),
+                $parameter->byRef ? Ast\Value\ParameterPassingMode::BY_REFERENCE : Ast\Value\ParameterPassingMode::BY_VALUE,
+                $parameter->variadic,
+                $parameter->default !== null ? $this->mapExpression($parameter->default) : null,
+                $visibility,
+                ($parameter->flags & Stmt\Class_::MODIFIER_READONLY) === Stmt\Class_::MODIFIER_READONLY,
+                $this->valueMapper->mapAttributeGroups($parameter->attrGroups),
+            ),
         );
     }
 
@@ -855,10 +896,13 @@ final class ExpressionMapper
 
     private function mapArgument(Node\Arg $argument): Ast\Argument\ArgumentNode
     {
-        return new Ast\Argument\ArgumentNode(
-            $this->mapExpression($argument->value),
-            $argument->name !== null ? $this->valueMapper->getTypeMapper()->mapIdentifier($argument->name) : null,
-            $argument->unpack,
+        return $this->applyAttributes(
+            $argument,
+            new Ast\Argument\ArgumentNode(
+                $this->mapExpression($argument->value),
+                $argument->name !== null ? $this->valueMapper->getTypeMapper()->mapIdentifier($argument->name) : null,
+                $argument->unpack,
+            ),
         );
     }
 

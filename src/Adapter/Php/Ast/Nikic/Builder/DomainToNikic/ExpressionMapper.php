@@ -33,6 +33,8 @@ use TimLappe\Elephactor\Domain\Php\AST\Model\Value\UnaryOperator;
 
 final class ExpressionMapper
 {
+    use AdapterNodeReuserTrait;
+
     public function __construct(
         private readonly ValueMapper $valueMapper,
         private readonly TypeMapper $typeMapper,
@@ -42,7 +44,7 @@ final class ExpressionMapper
 
     public function buildExpression(ExpressionNode $expression): Expr
     {
-        return match (true) {
+        $built = match (true) {
             $expression instanceof Ast\Expression\LiteralExpressionNode => $this->buildLiteralExpression($expression->value()),
             $expression instanceof Ast\Expression\VariableExpressionNode => $this->buildVariableExpression($expression),
             $expression instanceof Ast\Expression\ConstantFetchExpressionNode => new Expr\ConstFetch($this->valueMapper->buildQualifiedName($expression->name()->qualifiedName())),
@@ -113,6 +115,8 @@ final class ExpressionMapper
             $expression instanceof Ast\Expression\ListExpressionNode => $this->buildListExpression($expression),
             default => throw new \RuntimeException('Unsupported expression: ' . $expression::class),
         };
+
+        return $this->reuseAdapterNode($expression, $built);
     }
 
     /**
@@ -122,12 +126,15 @@ final class ExpressionMapper
     public function buildArguments(array $arguments): array
     {
         return array_map(
-            fn (ArgumentNode $argument): Arg => new Arg(
-                $this->buildExpression($argument->expression()),
-                false,
-                $argument->isUnpacked(),
-                [],
-                $argument->name() !== null ? $this->valueMapper->buildIdentifier($argument->name()->identifier()) : null,
+            fn (ArgumentNode $argument): Arg => $this->reuseAdapterNode(
+                $argument,
+                new Arg(
+                    $this->buildExpression($argument->expression()),
+                    false,
+                    $argument->isUnpacked(),
+                    [],
+                    $argument->name() !== null ? $this->valueMapper->buildIdentifier($argument->name()->identifier()) : null,
+                ),
             ),
             $arguments,
         );
@@ -157,15 +164,17 @@ final class ExpressionMapper
             $flags |= Stmt\Class_::MODIFIER_READONLY;
         }
 
-        return new Param(
-            var: new Expr\Variable($parameter->name()->value()),
-            default: $parameter->defaultValue() !== null ? $this->buildExpression($parameter->defaultValue()) : null,
-            type: $this->typeMapper->buildType($parameter->type()),
-            byRef: $parameter->passingMode() === ParameterPassingMode::BY_REFERENCE,
-            variadic: $parameter->isVariadic(),
-            attrGroups: $this->valueMapper->buildAttributeGroups($parameter->attributes()),
-            flags: $flags,
-        );
+        /** @var Node\Param $node */
+        $node = $parameter->getAdapterNode();
+        $node->attrGroups = $this->valueMapper->buildAttributeGroups($parameter->attributes());
+        $node->flags = $flags;
+        $node->variadic = $parameter->isVariadic();
+        $node->default = $parameter->defaultValue() !== null ? $this->buildExpression($parameter->defaultValue()) : null;
+        $node->byRef = $parameter->passingMode() === ParameterPassingMode::BY_REFERENCE;
+        $node->type = $this->typeMapper->buildType($parameter->type());
+        $node->var = new Expr\Variable($parameter->name()->value());
+
+        return $this->reuseAdapterNode($parameter, $node);
     }
 
     /**
@@ -175,9 +184,12 @@ final class ExpressionMapper
     private function buildClosureUses(array $uses): array
     {
         return array_map(
-            fn (ClosureUseVariableNode $use): ClosureUse => new ClosureUse(
-                new Expr\Variable($use->name()->value()),
-                $use->byReference(),
+            fn (ClosureUseVariableNode $use): ClosureUse => $this->reuseAdapterNode(
+                $use,
+                new ClosureUse(
+                    new Expr\Variable($use->name()->value()),
+                    $use->byReference(),
+                ),
             ),
             $uses,
         );
@@ -190,12 +202,15 @@ final class ExpressionMapper
     private function buildArrayItems(array $items): array
     {
         return array_map(
-            fn (ArrayItemNode $item): Node\ArrayItem => new Node\ArrayItem(
-                $this->buildExpression($item->value()),
-                $item->key() !== null ? $this->buildExpression($item->key()) : null,
-                $item->byReference(),
-                [],
-                $item->isUnpacked(),
+            fn (ArrayItemNode $item): Node\ArrayItem => $this->reuseAdapterNode(
+                $item,
+                new Node\ArrayItem(
+                    $this->buildExpression($item->value()),
+                    $item->key() !== null ? $this->buildExpression($item->key()) : null,
+                    $item->byReference(),
+                    [],
+                    $item->isUnpacked(),
+                ),
             ),
             $items,
         );
@@ -208,9 +223,12 @@ final class ExpressionMapper
     private function buildListItems(array $items): array
     {
         return array_map(
-            fn (ListItemNode $item): Node\ArrayItem => new Node\ArrayItem(
-                $this->buildExpression($item->value()),
-                $item->key() !== null ? $this->buildExpression($item->key()) : null,
+            fn (ListItemNode $item): Node\ArrayItem => $this->reuseAdapterNode(
+                $item,
+                new Node\ArrayItem(
+                    $this->buildExpression($item->value()),
+                    $item->key() !== null ? $this->buildExpression($item->key()) : null,
+                ),
             ),
             $items,
         );
@@ -231,10 +249,12 @@ final class ExpressionMapper
                         $arm->conditions(),
                     );
 
-                return new MatchArm(
+                $built = new MatchArm(
                     $conds,
                     $this->buildExpression($arm->body()),
                 );
+
+                return $this->reuseAdapterNode($arm, $built);
             },
             $arms,
         );
@@ -654,9 +674,15 @@ final class ExpressionMapper
         $parts = [];
 
         foreach ($expression->parts() as $part) {
-            $parts[] = $part->part() instanceof ExpressionNode
-                ? $this->buildExpression($part->part())
-                : new Node\InterpolatedStringPart($part->part());
+            if ($part->part() instanceof ExpressionNode) {
+                $parts[] = $this->buildExpression($part->part());
+                continue;
+            }
+
+            $parts[] = $this->reuseAdapterNode(
+                $part,
+                new Node\InterpolatedStringPart($part->part()),
+            );
         }
 
         $encapsed = new Scalar\Encapsed($parts);
