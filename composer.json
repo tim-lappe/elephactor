@@ -1,0 +1,18 @@
+{
+    "name": "tim-lappe/elephactor",
+    "description": "PHP Refactoring Tool",
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "Tim Lappe",
+            "email": "tim.lappe@check24.de"
+        }
+    ],
+    "require": {
+        "php": "^8.4",
+        "ext-zlib": "*"
+    },
+    "bin": [
+        "bin/elephactor"
+    ]
+}

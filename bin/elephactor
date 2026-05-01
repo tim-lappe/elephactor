@@ -1,0 +1,30 @@
+#!/usr/bin/env php
+<?php
+
+declare(strict_types=1);
+
+use TimLappe\Elephactor\Application;
+
+$root = dirname(__DIR__);
+$vendor = $root . '/vendor/autoload.php';
+$pharPath = $root . '/elephactor.phar';
+
+if (is_file($vendor)) {
+    require $vendor;
+} elseif (is_readable($pharPath)) {
+    $resolved = realpath($pharPath);
+    if ($resolved === false) {
+        fwrite(STDERR, "Could not resolve elephactor.phar path.\n");
+        exit(1);
+    }
+    require 'phar://' . str_replace('\\', '/', $resolved) . '/bin/elephactor';
+    exit(0);
+} else {
+    fwrite(STDERR, "Elephactor dependencies not found. Install with Composer or ensure elephactor.phar is present.\n");
+    exit(1);
+}
+
+(function (): void {
+    $application = new Application();
+    $application->run();
+})();
