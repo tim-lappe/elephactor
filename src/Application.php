@@ -100,8 +100,8 @@ class Application extends BaseApplication
 
     private function setupCommands(): void
     {
-        $this->add(new RenameClass());
-        $this->add(new MoveClass());
+        $this->addCommand(new RenameClass());
+        $this->addCommand(new MoveClass());
     }
 
     public function refactoringExecutor(): ChainedRefactoringExecutor
