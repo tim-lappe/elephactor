@@ -27,6 +27,7 @@ final class NikicAstBuilder implements AstBuilder
             PhpVersion::PHP_8_2 => PhpParserPhpVersion::fromString('8.2'),
             PhpVersion::PHP_8_3 => PhpParserPhpVersion::fromString('8.3'),
             PhpVersion::PHP_8_4 => PhpParserPhpVersion::fromString('8.4'),
+            PhpVersion::PHP_8_5 => PhpParserPhpVersion::fromString('8.5'),
         });
     }
 

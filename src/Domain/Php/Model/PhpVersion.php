@@ -12,6 +12,7 @@ enum PhpVersion: string
     case PHP_8_2 = '8.2';
     case PHP_8_3 = '8.3';
     case PHP_8_4 = '8.4';
+    case PHP_8_5 = '8.5';
 
     public static function fromString(string $version): self
     {
