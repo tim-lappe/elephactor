@@ -5,6 +5,8 @@ declare(strict_types=1);
 
 use TimLappe\Elephactor\Application;
 
+ini_set('memory_limit', '1G');
+
 $root = dirname(__DIR__);
 $vendor = $root . '/vendor/autoload.php';
 $pharPath = $root . '/elephactor.phar';
